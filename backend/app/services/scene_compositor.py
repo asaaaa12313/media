@@ -267,57 +267,79 @@ def generate_mixed_video(
     timings = generate_scene_timings(len(scenes))
     clip_paths = []
 
+    # Phase 1: 씬 이미지 렌더링 + 디스크 저장 (Pillow 작업)
+    scene_render_info: list[dict] = []
     for i, (layout, scene) in enumerate(zip(layouts, scenes)):
         start, end = timings[i] if i < len(timings) else (0, 3)
         duration = end - start
 
         if scene.media_type == "video" and i in video_paths:
-            # 영상 씬: FFmpeg로 구간 추출 + 오버레이
-            clip_path = clips_dir / f"clip_{i}.mp4"
+            # 영상 씬: 오버레이/바 이미지 저장
             overlay_png = render_text_overlay_png(
                 scene.headline, scene.subtext, template, frame_size=frame_size,
             )
             overlay_path = clips_dir / f"overlay_{i}.png"
             overlay_png.save(str(overlay_path))
+            overlay_png.close()
 
-            # 하단 바 합성용 임시 저장
             bar_path = clips_dir / f"bar_{i}.png"
             bottom_bar.save(str(bar_path))
 
-            _ffmpeg_extract_with_overlay(
-                video_paths[i], str(clip_path),
-                str(overlay_path), str(bar_path),
-                W, H, spec.content_height, duration, FPS,
-            )
-            clip_paths.append(str(clip_path))
-
-            # 프리뷰: 영상 첫 프레임 캡처
-            _save_video_preview(str(clip_path), previews_dir / f"scene_{i}.jpg")
+            scene_render_info.append({
+                "type": "video", "idx": i, "duration": duration,
+                "overlay_path": str(overlay_path), "bar_path": str(bar_path),
+            })
         else:
-            # 사진 씬: 정적 프레임 → 영상 클립
+            # 사진 씬: 프레임 렌더링 → 디스크 저장
             photo_idx = min(scene.media_index, max(0, len(photos) - 1))
             frame = renderer.render_scene(layout, photos, photo_idx)
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
 
-            # PNG으로 저장 (FFmpeg 호환성 최적)
             frame_path = clips_dir / f"still_{i}.png"
             frame.save(str(frame_path))
             logger.info(f"[mixed_video] scene_{i}: frame_size={frame.size}, saved={frame_path}")
             frame.close()
 
-            clip_path = clips_dir / f"clip_{i}.mp4"
-            _ffmpeg_still_to_clip(str(frame_path), str(clip_path),
+            scene_render_info.append({
+                "type": "photo", "idx": i, "duration": duration,
+                "frame_path": str(frame_path),
+            })
+
+    # Phase 2: 메모리 해제 (Pillow 객체 모두 정리 → FFmpeg에 메모리 확보)
+    for p in photos:
+        p.close()
+    photos.clear()
+    if logo:
+        logo.close()
+    if logo_small:
+        logo_small.close()
+    if bottom_bar:
+        bottom_bar.close()
+    renderer = None
+    import gc; gc.collect()
+    logger.info("[mixed_video] memory released, starting FFmpeg encoding")
+
+    # Phase 3: FFmpeg 인코딩 (메모리 확보된 상태에서)
+    for info in scene_render_info:
+        i = info["idx"]
+        duration = info["duration"]
+        clip_path = clips_dir / f"clip_{i}.mp4"
+
+        if info["type"] == "video":
+            _ffmpeg_extract_with_overlay(
+                video_paths[i], str(clip_path),
+                info["overlay_path"], info["bar_path"],
+                W, H, spec.content_height, duration, FPS,
+            )
+            clip_paths.append(str(clip_path))
+            _save_video_preview(str(clip_path), previews_dir / f"scene_{i}.jpg")
+        else:
+            _ffmpeg_still_to_clip(info["frame_path"], str(clip_path),
                                   W, H, duration, FPS)
             clip_paths.append(str(clip_path))
 
         if progress_cb:
             progress_cb((i + 1) / len(scenes) * 0.9)
-
-    # 사진 메모리 해제
-    for p in photos:
-        p.close()
-    photos.clear()
-    import gc; gc.collect()
 
     # 클립 연결
     output_path = str(job_dir / "combined.mp4")
@@ -351,7 +373,8 @@ def _ffmpeg_extract_with_overlay(
         "-map", "[out]", "-an",
         "-t", str(duration),
         "-r", str(fps),
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-threads", "2", "-x264-params", "threads=2:lookahead_threads=1",
         video_out,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -379,7 +402,8 @@ def _ffmpeg_still_to_clip(
         "-t", str(duration),
         "-r", str(fps),
         "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
-        "-c:v", "libx264", "-preset", "fast", "-crf", "18",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-threads", "2", "-x264-params", "threads=2:lookahead_threads=1",
         "-pix_fmt", "yuv420p",
         video_out,
     ]

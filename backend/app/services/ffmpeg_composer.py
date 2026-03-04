@@ -46,7 +46,10 @@ def compose_from_frames(frames_dir: str, bgm_path: str,
     else:
         cmd.extend(["-map", "0:v"])
 
-    codec_opts = ["-c:v", "libx264", "-preset", "fast", "-crf", "20"]
+    codec_opts = [
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-threads", "2", "-x264-params", "threads=2:lookahead_threads=1",
+    ]
     if bgm_path:
         codec_opts.extend(["-c:a", "aac", "-b:a", "128k"])
     codec_opts.extend([
@@ -94,7 +97,10 @@ def compose_from_video(video_path: str, bgm_path: str,
     else:
         cmd.extend(["-map", "0:v"])
 
-    codec_opts = ["-c:v", "libx264", "-preset", "fast", "-crf", "20"]
+    codec_opts = [
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-threads", "2", "-x264-params", "threads=2:lookahead_threads=1",
+    ]
     if bgm_path:
         codec_opts.extend(["-c:a", "aac", "-b:a", "128k"])
     codec_opts.extend([
