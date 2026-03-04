@@ -1,9 +1,12 @@
 """포커스미디어 영상 생성 파이프라인"""
 from __future__ import annotations
+import logging
 import shutil
 from datetime import datetime
 from pathlib import Path
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import TEMP_DIR, OUTPUT_DIR, TARGET_DURATION
 from app.models.schemas import BusinessInfo, BrandConfig, SceneConfig
@@ -66,29 +69,16 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
             if photos:
                 s.media_index = min(s.media_index, len(photos) - 1)
 
-        # 5. 프레임 생성
+        # 5. 영상 생성 (씬별 클립 → concat 방식 통일)
         update_fn("rendering", 30)
         frame_size = options.get("frame_size", "1080x1650")
-        has_video_scenes = any(
-            s.media_type == "video" and i in video_paths
-            for i, s in enumerate(scenes)
-        )
 
-        if has_video_scenes:
-            combined_path = scene_compositor.generate_mixed_video(
-                job_dir, business, brand, scenes, photos,
-                video_paths, template, logo_path,
-                frame_size=frame_size,
-                progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
-            )
-        else:
-            frames_dir = scene_compositor.generate_all_frames(
-                job_dir, business, brand, scenes, photos,
-                template, logo_path,
-                frame_size=frame_size,
-                progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
-            )
-            combined_path = None
+        combined_path = scene_compositor.generate_mixed_video(
+            job_dir, business, brand, scenes, photos,
+            video_paths, template, logo_path,
+            frame_size=frame_size,
+            progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
+        )
 
         # 6. BGM: genre 지정 없으면 업종 기반 자동
         update_fn("bgm", 82)
@@ -100,23 +90,19 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
             bgm_info = auto_select_bgm(business.category,
                                         bgm_dir=options.get("bgm_dir", ""))
 
-        # 7. 최종 합성
+        # 7. 최종 합성 (BGM 추가)
         update_fn("composing", 85)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = business.name.replace(" ", "_")[:20]
         filename = f"focus_{timestamp}_{safe_name}.mp4"
         output_path = str(OUTPUT_DIR / filename)
 
-        if has_video_scenes:
-            ffmpeg_composer.compose_from_video(
-                combined_path, bgm_info.get("path", ""),
-                output_path, TARGET_DURATION,
-            )
-        else:
-            ffmpeg_composer.compose_from_frames(
-                frames_dir, bgm_info.get("path", ""),
-                output_path, TARGET_DURATION,
-            )
+        logger.info(f"[composing] bgm_path='{bgm_info.get('path', '')}', output={output_path}")
+
+        ffmpeg_composer.compose_from_video(
+            combined_path, bgm_info.get("path", ""),
+            output_path, TARGET_DURATION,
+        )
 
         # 8. 프로젝트 저장
         update_fn("saving", 93)

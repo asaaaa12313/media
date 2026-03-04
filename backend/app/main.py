@@ -1,4 +1,8 @@
 """FastAPI 메인 앱 - 포커스미디어 영상 자동 생성기"""
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router

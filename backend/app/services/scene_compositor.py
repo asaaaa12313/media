@@ -6,10 +6,13 @@
 영상 포함 씬: FFmpeg로 클립 구간 추출 + 오버레이
 """
 from __future__ import annotations
+import logging
 import shutil
 import subprocess
 from pathlib import Path
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import (
     FPS, TARGET_DURATION,
@@ -165,6 +168,14 @@ def generate_all_frames(
     prev_scene_idx = -1
     prev_path = None
 
+    logger.info(f"[generate_all_frames] scene_frame_paths={list(scene_frame_paths.keys())}, "
+                f"total_frames={total_frames}, timings={timings}")
+    for k, v in scene_frame_paths.items():
+        from pathlib import Path as _P
+        p = _P(v)
+        logger.info(f"  scene_base_{k}: exists={p.exists()}, size={p.stat().st_size if p.exists() else 0}")
+
+    frames_generated = 0
     for fn in range(total_frames):
         t = fn / FPS
         out_path = frames_dir / f"{fn:05d}.jpg"
@@ -182,10 +193,12 @@ def generate_all_frames(
                 fa.close()
                 fb.close()
                 blended.close()
+                frames_generated += 1
             else:
                 src = pb or pa
                 if src:
                     _shutil.copyfile(src, str(out_path))
+                    frames_generated += 1
         else:
             idx = _get_scene_at_time(t, timings)
             src = scene_frame_paths.get(idx)
@@ -194,9 +207,16 @@ def generate_all_frames(
                     prev_scene_idx = idx
                     prev_path = src
                 _shutil.copyfile(src, str(out_path))
+                frames_generated += 1
 
         if progress_cb and fn % FPS == 0:
             progress_cb(fn / total_frames)
+
+    logger.info(f"[generate_all_frames] frames_generated={frames_generated}/{total_frames}")
+    # 검증: 첫 프레임 파일 존재 확인
+    first_frame = frames_dir / "00000.jpg"
+    logger.info(f"  first_frame exists={first_frame.exists()}, "
+                f"size={first_frame.stat().st_size if first_frame.exists() else 0}")
 
     if progress_cb:
         progress_cb(1.0)
@@ -332,7 +352,9 @@ def _ffmpeg_extract_with_overlay(
         "-c:v", "libx264", "-preset", "fast", "-crf", "18",
         video_out,
     ]
-    subprocess.run(cmd, capture_output=True, timeout=120)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if result.returncode != 0:
+        raise RuntimeError(f"extract_with_overlay 실패: {result.stderr[:500]}")
 
 
 def _ffmpeg_still_to_clip(
@@ -351,7 +373,10 @@ def _ffmpeg_still_to_clip(
         "-pix_fmt", "yuv420p",
         video_out,
     ]
-    subprocess.run(cmd, capture_output=True, timeout=60)
+    logger.info(f"[still_to_clip] {image_path} → {video_out} ({duration}s)")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    if result.returncode != 0:
+        raise RuntimeError(f"still_to_clip 실패: {result.stderr[:500]}")
 
 
 def _ffmpeg_concat_clips(clip_paths: list[str], output_path: str, work_dir: Path):
@@ -361,6 +386,7 @@ def _ffmpeg_concat_clips(clip_paths: list[str], output_path: str, work_dir: Path
         for p in clip_paths:
             f.write(f"file '{p}'\n")
 
+    logger.info(f"[concat_clips] {len(clip_paths)} clips → {output_path}")
     cmd = [
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0",
@@ -368,7 +394,9 @@ def _ffmpeg_concat_clips(clip_paths: list[str], output_path: str, work_dir: Path
         "-c", "copy",
         output_path,
     ]
-    subprocess.run(cmd, capture_output=True, timeout=120)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    if result.returncode != 0:
+        raise RuntimeError(f"concat_clips 실패: {result.stderr[:500]}")
 
 
 def _save_video_preview(video_path: str, output_path: Path):

@@ -1,15 +1,30 @@
 """FFmpeg 합성: 프레임 시퀀스 / 비디오 + BGM → 최종 MP4"""
+import logging
 import subprocess
+from pathlib import Path
 from app.core.config import FPS, BGM_VOLUME, BGM_FADE_IN, BGM_FADE_OUT, TARGET_DURATION
+
+logger = logging.getLogger(__name__)
 
 
 def compose_from_frames(frames_dir: str, bgm_path: str,
                         output_path: str,
                         duration: float = TARGET_DURATION) -> str:
     """사진 전용: PNG 프레임 시퀀스 + BGM → MP4"""
+    # 프레임 파일 존재 여부 검증
+    fd = Path(frames_dir)
+    frame_files = sorted(fd.glob("[0-9]*.jpg"))
+    logger.info(f"[compose_from_frames] frames_dir={frames_dir}, frame_count={len(frame_files)}")
+    if frame_files:
+        logger.info(f"  first={frame_files[0].name}, last={frame_files[-1].name}, "
+                     f"first_size={frame_files[0].stat().st_size}")
+    if not frame_files:
+        raise RuntimeError(f"프레임 파일 없음: {frames_dir}")
+
     cmd = [
         "ffmpeg", "-y",
         "-framerate", str(FPS),
+        "-start_number", "0",
         "-i", f"{frames_dir}/%05d.jpg",
     ]
 
@@ -43,9 +58,14 @@ def compose_from_frames(frames_dir: str, bgm_path: str,
     ])
     cmd.extend(codec_opts)
 
+    logger.info(f"[compose_from_frames] cmd: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        raise RuntimeError(f"FFmpeg 합성 실패: {result.stderr[-500:]}")
+        stderr = result.stderr
+        # 앞부분(원인) + 뒷부분(진행상태) 모두 캡처
+        err_head = stderr[:500] if len(stderr) > 1000 else ""
+        err_tail = stderr[-500:]
+        raise RuntimeError(f"FFmpeg 합성 실패:\n[HEAD] {err_head}\n[TAIL] {err_tail}")
 
     return output_path
 
@@ -85,8 +105,12 @@ def compose_from_video(video_path: str, bgm_path: str,
         output_path,
     ])
 
+    logger.info(f"[compose_from_video] cmd: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        raise RuntimeError(f"FFmpeg 합성 실패: {result.stderr[-500:]}")
+        stderr = result.stderr
+        err_head = stderr[:500] if len(stderr) > 1000 else ""
+        err_tail = stderr[-500:]
+        raise RuntimeError(f"FFmpeg 합성 실패:\n[HEAD] {err_head}\n[TAIL] {err_tail}")
 
     return output_path
