@@ -114,7 +114,8 @@ def _try_fullscreen_html_render(
             # promo 전용
             discount="",
             discount_label="",
-            cta_text=scene.headline if scene_type == "cta" and scene.headline else "",
+            cta_text=(scene.headline if scene_type == "cta" and scene.headline else
+                     "지금 바로 방문하세요" if scene_type == "cta" else ""),
             naver_search=f"네이버에서 '{business.name}' 검색" if scene_type == "promotion" else "",
             # ending 전용
             hours=_parse_hours(getattr(business, 'operating_hours', '')),
