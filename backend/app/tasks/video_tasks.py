@@ -149,8 +149,8 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
         raise
 
 
-def _load_photos(upload_dir: Path) -> list[Image.Image]:
-    """업로드 디렉토리에서 사진 로드"""
+def _load_photos(upload_dir: Path, max_pixels: int = 1200 * 1800) -> list[Image.Image]:
+    """업로드 디렉토리에서 사진 로드 (메모리 절약을 위해 즉시 리사이즈)"""
     photos = []
     if not upload_dir or not upload_dir.exists():
         return photos
@@ -159,7 +159,15 @@ def _load_photos(upload_dir: Path) -> list[Image.Image]:
                 "*.JPG", "*.JPEG", "*.PNG"):
         for f in sorted(upload_dir.glob(ext)):
             try:
-                photos.append(Image.open(f).convert("RGB"))
+                img = Image.open(f).convert("RGB")
+                # 메모리 절약: 필요 이상 큰 이미지는 즉시 축소
+                total = img.width * img.height
+                if total > max_pixels:
+                    ratio = (max_pixels / total) ** 0.5
+                    new_w = int(img.width * ratio)
+                    new_h = int(img.height * ratio)
+                    img = img.resize((new_w, new_h), Image.LANCZOS)
+                photos.append(img)
             except Exception:
                 continue
     return photos

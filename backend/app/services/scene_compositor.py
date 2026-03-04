@@ -140,9 +140,9 @@ def generate_all_frames(
         if i < len(scenes) and scenes[i].media_type == "photo":
             photo_idx = min(scenes[i].media_index, max(0, len(photos) - 1))
             frame = renderer.render_scene(layout, photos, photo_idx)
-            scene_frames[i] = frame
             # 프리뷰 저장
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
+            scene_frames[i] = frame
 
     # 씬별 정적 프레임을 파일로 저장 (메모리 해제용)
     scene_frame_paths: dict[int, str] = {}
@@ -150,8 +150,15 @@ def generate_all_frames(
         p = frames_dir / f"scene_base_{idx}.jpg"
         frame.save(p, quality=90)
         scene_frame_paths[idx] = str(p)
+        frame.close()
     # 메모리 해제 — 이후 필요 시 디스크에서 읽음
     scene_frames.clear()
+
+    # 사진 원본도 메모리 해제 (이후 디스크 프레임만 사용)
+    for p in photos:
+        p.close()
+    photos.clear()
+    import gc; gc.collect()
 
     # 프레임 시퀀스 생성 (정적 구간은 복사, 전환 구간만 blend)
     import os
@@ -274,6 +281,7 @@ def generate_mixed_video(
 
             frame_path = clips_dir / f"still_{i}.jpg"
             frame.save(str(frame_path), quality=95)
+            frame.close()
 
             clip_path = clips_dir / f"clip_{i}.mp4"
             _ffmpeg_still_to_clip(str(frame_path), str(clip_path),
@@ -282,6 +290,12 @@ def generate_mixed_video(
 
         if progress_cb:
             progress_cb((i + 1) / len(scenes) * 0.9)
+
+    # 사진 메모리 해제
+    for p in photos:
+        p.close()
+    photos.clear()
+    import gc; gc.collect()
 
     # 클립 연결
     output_path = str(job_dir / "combined.mp4")

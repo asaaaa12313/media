@@ -588,7 +588,7 @@ export default function Home() {
       bottom_wide: "하단",
     };
     return (
-      <div className="grid grid-cols-3 gap-0.5 w-full max-w-[180px]">
+      <div className="grid grid-cols-3 gap-1 w-full max-w-[220px]">
         {positions.flat().map((pos, i) => {
           // bottom_wide는 3칸 merge (첫번째만 렌더)
           if (pos === "bottom_wide" && i > 6) return null;
@@ -597,10 +597,10 @@ export default function Home() {
             <button
               key={i}
               onClick={() => onChange(value === pos ? "" : pos)}
-              className={`${isBottomWide ? "col-span-3" : ""} py-1 text-[10px] rounded transition border ${
+              className={`${isBottomWide ? "col-span-3" : ""} py-2 px-1 text-xs font-medium rounded-md transition border ${
                 value === pos
-                  ? "bg-blue-600 border-blue-500 text-white"
-                  : "bg-gray-800/60 border-gray-700/50 text-gray-500 hover:text-gray-300"
+                  ? "bg-blue-600 border-blue-500 text-white shadow-sm shadow-blue-500/30"
+                  : "bg-gray-800/80 border-gray-600/60 text-gray-400 hover:text-white hover:bg-gray-700/80 hover:border-gray-500"
               }`}
             >
               {labels[pos]}
@@ -1012,7 +1012,7 @@ export default function Home() {
                   {/* 하단 옵션: 텍스트 위치 + 폰트 색상 */}
                   <div className="flex items-start gap-3 mt-2 pt-2 border-t border-gray-700/40">
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-1">텍스트 위치</span>
+                      <span className="text-xs text-gray-400 font-medium block mb-1.5">텍스트 위치</span>
                       <PositionGrid value={scene.text_position} onChange={(v) => updateScene(i, "text_position", v)} />
                     </div>
                     <div className="flex-1 space-y-1.5">

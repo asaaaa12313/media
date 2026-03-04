@@ -104,7 +104,7 @@ def _build_prompt(business: BusinessInfo, num_scenes: int) -> str:
     return f"""당신은 대한민국 최고의 엘리베이터/빌딩 스크린 광고 카피라이터입니다.
 15초짜리 세로형 광고 영상의 씬별 텍스트를 작성합니다.
 
-[업체 정보]
+[업체 정보 - 반드시 이 정보를 기반으로 작성]
 업체명: {business.name}
 업종: {business.category}
 태그라인: {business.tagline or "없음"}
@@ -116,20 +116,22 @@ def _build_prompt(business: BusinessInfo, num_scenes: int) -> str:
 [씬 구성 ({num_scenes}개)]
 {roles_text}
 
-[레퍼런스 예시 - 이 수준 이상으로 작성]
+[레퍼런스 예시 - 형식 참고용]
 {examples_text}
 
 [필수 규칙]
-1. headline: 8~15자, 리듬감 있는 짧은 문장. "~합니다"체 금지. 명사형/감탄형/질문형 활용.
+1. **업체 정보 충실 반영**: 업체명 "{business.name}"과 실제 서비스({services_text})를 구체적으로 녹여내야 합니다. 업체와 무관한 일반적 문구는 절대 사용 금지.
+2. headline: 8~15자, 리듬감 있는 짧은 문장. "~합니다"체 금지. 명사형/감탄형/질문형 활용.
    - 좋은 예: "한 입에 반하다", "오늘이 Day 1", "성적이 오른다"
    - 나쁜 예: "최고의 맛을 제공합니다", "전문적인 서비스", "특별한 경험"
-2. subtext: 20~40자, 구체적 숫자/사실 포함. 추상적 미사여구 금지.
+3. subtext: 20~40자, 이 업체만의 구체적 특장점/숫자/사실 포함. 추상적 미사여구 금지.
    - 좋은 예: "10년 경력 셰프의\\n제철 코스 요리", "리뷰 4.9점\\n재방문율 87%"
    - 나쁜 예: "최상의 서비스를\\n제공합니다", "특별한 경험을\\n선사합니다"
-3. emphasis_words: headline에서 감정/행동을 유발하는 핵심 단어 1개
-4. 각 씬은 완전히 다른 관점에서 어필 (중복 표현 절대 금지)
-5. 마지막 씬(CTA)은 구체적 행동 유도: "예약", "전화", "방문" 등 명확한 동사 사용
-6. "{business.name}"을 자연스럽게 1~2회 포함
+4. emphasis_words: headline에서 감정/행동을 유발하는 핵심 단어 1개
+5. 각 씬은 완전히 다른 관점에서 어필 (중복 표현 절대 금지)
+6. 마지막 씬(CTA)은 구체적 행동 유도: "예약", "전화", "방문" 등 명확한 동사 사용
+7. "{business.name}"을 자연스럽게 1~2회 포함
+8. **해당 업종과 맞지 않는 표현 사용 금지** (예: 음식점이 아닌데 "식재료", "맛" 등 사용 금지)
 
 반드시 아래 JSON 형식으로만 응답 (JSON 외 텍스트 없이):
 [
@@ -163,13 +165,15 @@ def _generate_with_gemini(business: BusinessInfo, num_scenes: int) -> list[Scene
         prompt = _build_prompt(business, num_scenes)
 
         response = client.models.generate_content(
-            model="gemini-3.1-pro-preview",
+            model="gemini-2.5-flash",
             contents=prompt,
         )
 
         text = response.text.strip()
         return _parse_ai_response(text, num_scenes)
-    except Exception:
+    except Exception as e:
+        import traceback
+        print(f"[Gemini Error] {e}\n{traceback.format_exc()}")
         return None
 
 
