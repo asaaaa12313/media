@@ -161,7 +161,7 @@ def generate_all_frames(
     import gc; gc.collect()
 
     # 프레임 시퀀스 생성 (정적 구간은 복사, 전환 구간만 blend)
-    import os
+    import shutil as _shutil
     prev_scene_idx = -1
     prev_path = None
 
@@ -185,7 +185,7 @@ def generate_all_frames(
             else:
                 src = pb or pa
                 if src:
-                    os.link(src, out_path)
+                    _shutil.copyfile(src, str(out_path))
         else:
             idx = _get_scene_at_time(t, timings)
             src = scene_frame_paths.get(idx)
@@ -193,7 +193,7 @@ def generate_all_frames(
                 if idx != prev_scene_idx or prev_path is None:
                     prev_scene_idx = idx
                     prev_path = src
-                os.link(src, out_path)
+                _shutil.copyfile(src, str(out_path))
 
         if progress_cb and fn % FPS == 0:
             progress_cb(fn / total_frames)

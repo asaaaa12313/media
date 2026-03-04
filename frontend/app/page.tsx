@@ -1027,7 +1027,7 @@ export default function Home() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-gray-600">강조 색상</span>
-                        <input type="color" value={scene.emphasis_color || "#FF5050"}
+                        <input type="color" value={scene.emphasis_color || primaryColor || CATEGORIES.find((c) => c.id === category)?.color || "#FF5050"}
                           onChange={(e) => updateScene(i, "emphasis_color", e.target.value)}
                           className="w-6 h-5 rounded cursor-pointer border border-gray-700" />
                         {scene.emphasis_color && (
