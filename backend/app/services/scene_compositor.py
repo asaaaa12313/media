@@ -299,8 +299,10 @@ def generate_mixed_video(
             frame = renderer.render_scene(layout, photos, photo_idx)
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
 
-            frame_path = clips_dir / f"still_{i}.jpg"
-            frame.save(str(frame_path), quality=95)
+            # PNG으로 저장 (FFmpeg 호환성 최적)
+            frame_path = clips_dir / f"still_{i}.png"
+            frame.save(str(frame_path))
+            logger.info(f"[mixed_video] scene_{i}: frame_size={frame.size}, saved={frame_path}")
             frame.close()
 
             clip_path = clips_dir / f"clip_{i}.mp4"
@@ -354,7 +356,8 @@ def _ffmpeg_extract_with_overlay(
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        raise RuntimeError(f"extract_with_overlay 실패: {result.stderr[:500]}")
+        logger.error(f"[extract_with_overlay] FFmpeg FULL stderr:\n{result.stderr}")
+        raise RuntimeError(f"extract_with_overlay 실패 (rc={result.returncode}): {result.stderr[-500:]}")
 
 
 def _ffmpeg_still_to_clip(
@@ -363,20 +366,29 @@ def _ffmpeg_still_to_clip(
     duration: float, fps: int,
 ):
     """정지 이미지 → 영상 클립 변환"""
+    # 입력 파일 검증
+    from pathlib import Path as _P
+    img_p = _P(image_path)
+    if not img_p.exists():
+        raise RuntimeError(f"still_to_clip: 입력 파일 없음 {image_path}")
+    logger.info(f"[still_to_clip] {image_path} (size={img_p.stat().st_size}) → {video_out} ({duration}s, {width}x{height})")
+
     cmd = [
         "ffmpeg", "-y",
         "-loop", "1", "-i", image_path,
         "-t", str(duration),
         "-r", str(fps),
-        "-vf", f"scale={width}:{height}",
+        "-vf", f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2",
         "-c:v", "libx264", "-preset", "fast", "-crf", "18",
         "-pix_fmt", "yuv420p",
         video_out,
     ]
-    logger.info(f"[still_to_clip] {image_path} → {video_out} ({duration}s)")
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        raise RuntimeError(f"still_to_clip 실패: {result.stderr[:500]}")
+        # 전체 stderr를 로그에 기록 (Railway 로그에서 확인용)
+        logger.error(f"[still_to_clip] FFmpeg FULL stderr:\n{result.stderr}")
+        # 에러 메시지: 끝부분에 실제 원인이 있음
+        raise RuntimeError(f"still_to_clip 실패 (rc={result.returncode}): {result.stderr[-500:]}")
 
 
 def _ffmpeg_concat_clips(clip_paths: list[str], output_path: str, work_dir: Path):
@@ -396,7 +408,8 @@ def _ffmpeg_concat_clips(clip_paths: list[str], output_path: str, work_dir: Path
     ]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
-        raise RuntimeError(f"concat_clips 실패: {result.stderr[:500]}")
+        logger.error(f"[concat_clips] FFmpeg FULL stderr:\n{result.stderr}")
+        raise RuntimeError(f"concat_clips 실패 (rc={result.returncode}): {result.stderr[-500:]}")
 
 
 def _save_video_preview(video_path: str, output_path: Path):
