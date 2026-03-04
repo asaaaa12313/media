@@ -1,0 +1,110 @@
+"""BGM 자동 선택: 자막 내용 + 파일명 키워드 기반"""
+import os
+import random
+import glob
+from pathlib import Path
+from app.core.config import BGM_DIR
+
+GENRE_KEYWORDS = {
+    "신남": ["에너지", "챌린지", "운동", "댄스", "신나", "빠른", "파이팅", "화이팅", "고고", "레츠고"],
+    "강렬한": ["극적", "임팩트", "하이라이트", "대박", "최고", "역대급", "미쳤", "실화"],
+    "밝음": ["따뜻", "일상", "브이로그", "카페", "산책", "출근", "아침", "커피", "맛있"],
+    "잔잔": ["감성", "힐링", "풍경", "여행", "바다", "하늘", "석양", "숲", "조용", "편안"],
+    "펑키": ["유쾌", "리뷰", "언박싱", "먹방", "맛집", "추천", "꿀팁", "개꿀"],
+    "클래식": ["고급", "교육", "격식", "전문", "클래스", "레슨", "세미나"],
+    "팝": ["트렌디", "노래", "커버", "뮤직", "음악"],
+    "일본풍": ["도쿄", "오사카", "일본", "라멘", "스시", "교토", "일식"],
+    "크리스마스": ["크리스마스", "연말", "겨울", "산타", "눈", "선물"],
+}
+
+DEFAULT_GENRE = "신남"
+
+
+def select_bgm(srt_content: str = "", filenames: list[str] = None,
+                genre: str = "", bgm_dir: str = "") -> dict:
+    """
+    BGM 자동 선택.
+    - genre가 지정되면 해당 장르에서 랜덤 선택
+    - 아니면 srt_content + filenames 기반으로 장르 추론
+    """
+    bgm_base = Path(bgm_dir) if bgm_dir else BGM_DIR
+
+    if not bgm_base.exists():
+        return {"genre": genre or DEFAULT_GENRE, "path": "", "filename": ""}
+
+    if genre:
+        selected_genre = genre
+    else:
+        selected_genre = _infer_genre(srt_content, filenames or [])
+
+    # 장르 폴더에서 BGM 파일 찾기
+    genre_dir = bgm_base / selected_genre
+    if not genre_dir.exists():
+        # 폴백: 아무 장르나 찾기
+        for d in bgm_base.iterdir():
+            if d.is_dir():
+                genre_dir = d
+                selected_genre = d.name
+                break
+        else:
+            return {"genre": selected_genre, "path": "", "filename": ""}
+
+    bgm_files = []
+    for ext in ("*.mp3", "*.MP3", "*.wav", "*.WAV", "*.m4a"):
+        bgm_files.extend(glob.glob(str(genre_dir / ext)))
+
+    if not bgm_files:
+        return {"genre": selected_genre, "path": "", "filename": ""}
+
+    chosen = random.choice(bgm_files)
+    return {
+        "genre": selected_genre,
+        "path": chosen,
+        "filename": os.path.basename(chosen),
+    }
+
+
+def _infer_genre(srt_content: str, filenames: list[str]) -> str:
+    """자막 내용과 파일명에서 장르 추론"""
+    text = srt_content.lower() + " " + " ".join(filenames).lower()
+
+    scores = {}
+    for genre, keywords in GENRE_KEYWORDS.items():
+        score = sum(1 for kw in keywords if kw in text)
+        if score > 0:
+            scores[genre] = score
+
+    if not scores:
+        # 무음 영상이면 잔잔
+        if not srt_content.strip():
+            return "잔잔"
+        return DEFAULT_GENRE
+
+    return max(scores, key=scores.get)
+
+
+# 업종 → BGM 장르 매핑
+CATEGORY_BGM_MAP = {
+    "음식점": "밝음", "헬스": "강렬한", "뷰티": "잔잔",
+    "학원": "밝음", "병원": "클래식", "안경": "밝음",
+    "부동산": "클래식", "골프": "클래식", "핸드폰": "신남",
+    "동물병원": "밝음", "미용실": "팝", "기타": "밝음",
+}
+
+
+def auto_select_bgm(category: str, bgm_dir: str = "") -> dict:
+    """업종에 맞는 BGM 자동 선택"""
+    genre = CATEGORY_BGM_MAP.get(category, "밝음")
+    return select_bgm(genre=genre, bgm_dir=bgm_dir)
+
+
+def list_genres(bgm_dir: str = "") -> list[dict]:
+    """사용 가능한 BGM 장르 목록 반환"""
+    bgm_base = Path(bgm_dir) if bgm_dir else BGM_DIR
+    genres = []
+    if bgm_base.exists():
+        for d in sorted(bgm_base.iterdir()):
+            if d.is_dir():
+                count = len(list(d.glob("*.mp3")) + list(d.glob("*.MP3")))
+                genres.append({"name": d.name, "count": count})
+    return genres
