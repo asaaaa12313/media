@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 import json
-from app.core.config import GEMINI_API_KEY, CLAUDE_API_KEY
+from app.core.config import GEMINI_API_KEY
 from app.models.schemas import BusinessInfo, SceneConfig
 
 
@@ -142,42 +142,17 @@ suggested_photo_index: 0부터 시작, 씬마다 다른 사진 사용"""
 
 
 def generate_scene_texts(business: BusinessInfo, num_scenes: int = 4) -> list[SceneConfig]:
-    """AI로 씬 텍스트 자동 생성 (Claude → Gemini → 폴백)"""
+    """AI로 씬 텍스트 자동 생성 (Gemini → 폴백)"""
     num_scenes = max(4, min(10, num_scenes))
 
-    # 1. Claude API 시도 (품질 우선)
-    if CLAUDE_API_KEY:
-        result = _generate_with_claude(business, num_scenes)
-        if result:
-            return result
-
-    # 2. Gemini API 시도
+    # 1. Gemini API 시도
     if GEMINI_API_KEY:
         result = _generate_with_gemini(business, num_scenes)
         if result:
             return result
 
-    # 3. 폴백
+    # 2. 폴백
     return _fallback_texts(business, num_scenes)
-
-
-def _generate_with_claude(business: BusinessInfo, num_scenes: int) -> list[SceneConfig] | None:
-    """Claude API로 텍스트 생성"""
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=CLAUDE_API_KEY)
-        prompt = _build_prompt(business, num_scenes)
-
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        text = message.content[0].text.strip()
-        return _parse_ai_response(text, num_scenes)
-    except Exception:
-        return None
 
 
 def _generate_with_gemini(business: BusinessInfo, num_scenes: int) -> list[SceneConfig] | None:
@@ -188,7 +163,7 @@ def _generate_with_gemini(business: BusinessInfo, num_scenes: int) -> list[Scene
         prompt = _build_prompt(business, num_scenes)
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-pro-preview-06-05",
             contents=prompt,
         )
 
