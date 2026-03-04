@@ -103,49 +103,50 @@ def _render_promo_section(draw, panel, y, h, template, tagline, business_name):
     """패턴 A - 프로모션 강조 (음식점, 뷰티, 헬스, 골프)"""
     accent = template.get("accent", (255, 200, 50))
     text_color = template.get("panel_text", (50, 50, 50))
-    primary = template.get("primary", (50, 50, 50))
     fonts = template.get("fonts", {})
 
     promo_text = tagline or f"{business_name} 방문을 환영합니다!"
 
-    # 장식 라인 (좌측 상단)
-    Decorations.draw_accent_line(panel, 80, y + 8, 200, accent, thickness=3)
+    # 상단 강조 색상 바 (중앙 80px)
+    bar_w = 80
+    bar_x = (WIDTH - bar_w) // 2
+    draw.rounded_rectangle(
+        [bar_x, y + 8, bar_x + bar_w, y + 12],
+        radius=2, fill=(*accent[:3], 200)
+    )
 
-    # 스파클 장식 + 홍보 문구
+    # 홍보 문구 (accent 폰트, 자동 크기 조정)
     font_name = fonts.get("accent", fonts.get("headline", "GmarketSansBold.otf"))
-    font_size = 36
+    font_size = 38
     font = _get_font(font_name, font_size)
-
-    text = f"✨  {promo_text}  ✨"
-    bbox = draw.textbbox((0, 0), text, font=font)
+    bbox = draw.textbbox((0, 0), promo_text, font=font)
     tw = bbox[2] - bbox[0]
-    # 크기 조정
-    while tw > WIDTH - 100 and font_size > 22:
+    while tw > WIDTH - 120 and font_size > 22:
         font_size -= 2
         font = _get_font(font_name, font_size)
-        bbox = draw.textbbox((0, 0), text, font=font)
+        bbox = draw.textbbox((0, 0), promo_text, font=font)
         tw = bbox[2] - bbox[0]
 
     tx = (WIDTH - tw) // 2
-    ty = y + 30
-    TextEffects.apply(draw, text, tx, ty, font, text_color, "highlight",
-                      {"highlight_color": accent, "highlight_alpha": 120,
-                       "padding_x": 15, "padding_y": 6})
+    ty = y + 24
+    TextEffects.apply(draw, promo_text, tx, ty, font, text_color, "underline_accent",
+                      {"bar_color": accent, "bar_alpha": 180, "bar_height": 6})
 
-    # 서브 카피 (박스 배경)
-    sub_text = "자세한 내용은 QR코드를 확인하세요!"
+    # 서브 카피 (동적)
+    sub_text = "QR코드를 스캔해보세요!" if tagline else business_name
     sub_font = _get_font(fonts.get("body", "Pretendard-Bold.otf"), 22)
     sub_bbox = draw.textbbox((0, 0), sub_text, font=sub_font)
     sub_tw = sub_bbox[2] - sub_bbox[0]
     sub_tx = (WIDTH - sub_tw) // 2
-    sub_ty = ty + 60
-    TextEffects.apply(draw, sub_text, sub_tx, sub_ty, sub_font,
-                      (*text_color[:3], 200), "bg_box",
-                      {"bg_color": primary, "bg_alpha": 30,
-                       "radius": 8, "padding": 10})
+    sub_ty = ty + bbox[3] - bbox[1] + 16
+    draw.text((sub_tx, sub_ty), sub_text, font=sub_font,
+              fill=(*text_color[:3], 160))
 
-    # 장식 라인 (우측 하단)
-    Decorations.draw_accent_line(panel, WIDTH - 280, y + h - 5, 200, accent, thickness=3)
+    # 하단 강조 바
+    draw.rounded_rectangle(
+        [bar_x, y + h - 5, bar_x + bar_w, y + h - 1],
+        radius=2, fill=(*accent[:3], 200)
+    )
 
 
 def _render_info_card_section(draw, panel, y, h, template, services, tagline):

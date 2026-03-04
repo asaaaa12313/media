@@ -1,11 +1,13 @@
 """구조화된 텍스트/뱃지 렌더링 유틸 (Pillow) + 텍스트 효과 시스템"""
 from __future__ import annotations
+from functools import lru_cache
 from PIL import Image, ImageDraw, ImageFont
 from app.core.config import FONTS_DIR, WIDTH
 
 MARGIN = 60
 
 
+@lru_cache(maxsize=64)
 def _get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
     path = FONTS_DIR / name
     if path.exists():
@@ -113,15 +115,14 @@ class TextEffects:
 
     @staticmethod
     def _effect_neon(draw, text, x, y, font, color, params):
-        """네온사인: 넓은 glow + 밝은 내부"""
+        """네온사인: 4방향 glow + 밝은 내부 (최적화)"""
         nc = params.get("neon_color", color[:3])
-        for r in range(8, 0, -1):
-            alpha = int(100 / r)
-            for dx in range(-r, r + 1, max(1, r // 2)):
-                for dy in range(-r, r + 1, max(1, r // 2)):
-                    if dx * dx + dy * dy <= r * r:
-                        draw.text((x + dx, y + dy), text, font=font,
-                                  fill=(*nc[:3], alpha))
+        # 3단계 x 4방향 = 12회 draw (기존 이중루프 수백 회 → 12회)
+        for r in (6, 4, 2):
+            alpha = int(60 / (r / 2))
+            for dx, dy in [(-r, 0), (r, 0), (0, -r), (0, r)]:
+                draw.text((x + dx, y + dy), text, font=font,
+                          fill=(*nc[:3], alpha))
         # 외곽선
         draw.text((x, y), text, font=font, fill=(*nc[:3], 255),
                   stroke_width=2, stroke_fill=(*nc[:3], 180))
@@ -176,11 +177,10 @@ class TextEffects:
 
     @staticmethod
     def _effect_gradient_text(draw, text, x, y, font, color, params, layer=None):
-        """그라데이션 텍스트: 상하 2색"""
+        """그라데이션 텍스트: 상하 2색 (행 단위 최적화)"""
         color_top = params.get("color_top", color[:3])
         color_bottom = params.get("color_bottom", (255, 200, 50))
         if layer is None:
-            # layer 없으면 일반 렌더링으로 폴백
             draw.text((x, y), text, font=font, fill=color)
             return
         bbox = draw.textbbox((x, y), text, font=font)
@@ -188,20 +188,21 @@ class TextEffects:
         th = bbox[3] - bbox[1] + 4
         if tw <= 0 or th <= 0:
             return
-        # 텍스트 마스크 생성
+        # 텍스트 마스크
         mask_img = Image.new("L", (tw, th), 0)
         mask_draw = ImageDraw.Draw(mask_img)
         mask_draw.text((0, 0), text, font=font, fill=255)
-        # 그라데이션 이미지 생성
-        grad_img = Image.new("RGBA", (tw, th))
+        # 그라데이션: 행 단위 paste (putpixel/getpixel 제거)
+        grad_img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
         for row in range(th):
             ratio = row / max(th - 1, 1)
             r = int(color_top[0] * (1 - ratio) + color_bottom[0] * ratio)
             g = int(color_top[1] * (1 - ratio) + color_bottom[1] * ratio)
             b = int(color_top[2] * (1 - ratio) + color_bottom[2] * ratio)
-            for col in range(tw):
-                if mask_img.getpixel((col, row)) > 0:
-                    grad_img.putpixel((col, row), (r, g, b, mask_img.getpixel((col, row))))
+            row_img = Image.new("RGBA", (tw, 1), (r, g, b, 255))
+            grad_img.paste(row_img, (0, row))
+        # 마스크 적용
+        grad_img.putalpha(mask_img)
         layer.paste(grad_img, (bbox[0], bbox[1]), grad_img)
 
 
@@ -416,14 +417,15 @@ def draw_badge(draw: ImageDraw.Draw, text: str, x: int, y: int,
     else:
         radius = 4
 
+    # 그림자 (2px 오프셋, 반투명)
+    draw.rounded_rectangle(
+        [x + 2, y + 2, x + badge_w + 2, y + badge_h + 2],
+        radius=radius, fill=(0, 0, 0, 40)
+    )
+    # 배경
     draw.rounded_rectangle(
         [x, y, x + badge_w, y + badge_h],
         radius=radius, fill=bg_color
-    )
-    # 테두리
-    draw.rounded_rectangle(
-        [x, y, x + badge_w, y + badge_h],
-        radius=radius, outline=(*bg_color[:3], 180), width=1
     )
     draw.text((x + pad_x, y + pad_y), text, font=font, fill=text_color)
     return badge_w
