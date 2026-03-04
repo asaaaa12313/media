@@ -23,7 +23,7 @@ from app.services.layout_renderer import (
     LayoutRenderer, SceneLayout, build_scene_layout, render_text_overlay_png,
     FRAME_SIZES, DEFAULT_FRAME_SIZE,
 )
-from app.services.info_panel import render_bottom_bar
+from app.services.info_panel import render_info_panel
 from app.services.brand_system import load_logo, load_logo_small
 from app.services.qr_generator import generate_qr
 from app.services.image_processor import center_crop_resize
@@ -118,14 +118,22 @@ def generate_all_frames(
 
     # LayoutRenderer 초기화 (멀티 해상도)
     renderer = LayoutRenderer(template, logo, business.name, frame_size=frame_size)
+    spec = renderer.spec
 
-    # 하단 바 생성 (1회, 전 씬 동일)
-    bottom_bar = render_bottom_bar(
-        template, business.name, business.phone, business.address,
-        logo_small, qr,
-        bar_style=template.get("bar_style", "classic"),
+    # 정보 패널 생성 (1회, 전 씬 동일)
+    info_panel = render_info_panel(
+        template=template,
+        business_name=business.name,
+        tagline=business.tagline,
+        services=business.services,
+        phone=business.phone,
+        address=business.address,
+        category=business.category,
+        logo=logo_small,
+        qr=qr,
+        panel_height=spec.info_height,
     )
-    renderer.set_bottom_bar(bottom_bar)
+    renderer.set_bottom_bar(info_panel)
 
     # SceneLayout 빌드
     layouts = _build_scene_layouts(business, scenes, template)
@@ -256,12 +264,20 @@ def generate_mixed_video(
     logo_small = load_logo_small(logo_path) if logo_path else None
     qr = generate_qr(business.website)
     renderer = LayoutRenderer(template, logo, business.name, frame_size=frame_size)
-    bottom_bar = render_bottom_bar(
-        template, business.name, business.phone, business.address,
-        logo_small, qr,
-        bar_style=template.get("bar_style", "classic"),
+    spec = renderer.spec
+    info_panel = render_info_panel(
+        template=template,
+        business_name=business.name,
+        tagline=business.tagline,
+        services=business.services,
+        phone=business.phone,
+        address=business.address,
+        category=business.category,
+        logo=logo_small,
+        qr=qr,
+        panel_height=spec.info_height,
     )
-    renderer.set_bottom_bar(bottom_bar)
+    renderer.set_bottom_bar(info_panel)
 
     layouts = _build_scene_layouts(business, scenes, template)
     timings = generate_scene_timings(len(scenes))
@@ -283,7 +299,7 @@ def generate_mixed_video(
             overlay_png.close()
 
             bar_path = clips_dir / f"bar_{i}.png"
-            bottom_bar.save(str(bar_path))
+            info_panel.save(str(bar_path))
 
             scene_render_info.append({
                 "type": "video", "idx": i, "duration": duration,
@@ -313,8 +329,8 @@ def generate_mixed_video(
         logo.close()
     if logo_small:
         logo_small.close()
-    if bottom_bar:
-        bottom_bar.close()
+    if info_panel:
+        info_panel.close()
     renderer = None
     import gc; gc.collect()
     logger.info("[mixed_video] memory released, starting FFmpeg encoding")

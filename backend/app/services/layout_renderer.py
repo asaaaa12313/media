@@ -6,8 +6,8 @@
 - 1080x2560 (롱폼)
 
 2-Layer 구성:
-- 콘텐츠 영역 (height - 200px): 사진 + 자유 배치 텍스트
-- 하단 바 (200px): 고정 정보 (주소/전화/QR)
+- 콘텐츠 영역 (67%): 사진 + 자유 배치 텍스트
+- 정보 패널 (33%): 홍보 + 브랜드 + 연락처
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -30,11 +30,20 @@ class FrameSpec:
     """프레임 해상도 스펙"""
     width: int
     height: int
-    bottom_bar_height: int = 200
+
+    @property
+    def info_height(self) -> int:
+        """하단 정보 패널 높이 (1/3)"""
+        return self.height // 3
 
     @property
     def content_height(self) -> int:
-        return self.height - self.bottom_bar_height
+        return self.height - self.info_height
+
+    @property
+    def bottom_bar_height(self) -> int:
+        """하위 호환"""
+        return self.info_height
 
 
 FRAME_SIZES: dict[str, FrameSpec] = {
@@ -45,8 +54,8 @@ FRAME_SIZES: dict[str, FrameSpec] = {
 
 DEFAULT_FRAME_SIZE = "1080x1650"
 
-# TEXT_REGIONS 기준 콘텐츠 높이 (config.py에 정의된 값 기준)
-_BASE_CONTENT_HEIGHT = 1720
+# TEXT_REGIONS 기준 콘텐츠 높이 (1080x1650 프레임의 content=1100px)
+_BASE_CONTENT_HEIGHT = 1100
 
 
 def _scale_regions(spec: FrameSpec) -> dict[str, dict]:

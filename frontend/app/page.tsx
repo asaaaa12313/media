@@ -460,6 +460,28 @@ export default function Home() {
       const res = await fetch(`${API}/api/projects/${pid}`);
       if (!res.ok) return;
       const data = await res.json();
+
+      // 서버 scenes 데이터 동기화 (편집 모드 에러 방지)
+      if (data.scenes?.length > 0) {
+        setScenes(data.scenes.map((s: any, i: number) => ({
+          headline: s.headline || "",
+          subtext: s.subtext || "",
+          media_index: s.media_index ?? i,
+          media_type: s.media_type || "photo",
+          scene_type: s.scene_type || "",
+          text_position: s.text_position || "",
+          font_color: s.font_color || "",
+          emphasis_color: s.emphasis_color || "",
+          emphasis_words: s.emphasis_words || [],
+          layout_variant: s.layout_variant ?? 0,
+          photo_mode: s.photo_mode || "",
+          photo_overlay: s.photo_overlay || "",
+          text_effect: s.text_effect || "",
+          font_name: s.font_name || "",
+          font_size_scale: s.font_size_scale ?? 1.0,
+        })));
+      }
+
       if (data.previews) {
         setPreviewUrls(
           data.previews.map((_: string, i: number) =>
