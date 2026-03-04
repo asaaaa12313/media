@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+{% include 'components/base.css' %}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: #0C0C0C;
+}
+
+.photo-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+.photo-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.photo-area .gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.8) 100%);
+}
+.text-overlay {
+    position: absolute;
+    left: 60px;
+    right: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    text-align: center;
+}
+.text-overlay .main-text {
+    font-family: 'Gmarket';
+    font-size: 72px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -2px;
+    line-height: 1.1;
+}
+.text-overlay .sub-text {
+    font-size: 24px;
+    color: rgba(255,255,255,0.8);
+    margin-top: 12px;
+}
+.text-overlay .accent-line {
+    width: 60px;
+    height: 4px;
+    background: var(--accent, #FF3B30);
+    border-radius: 2px;
+    margin: 16px auto 0;
+}
+</style>
+</head>
+<body>
+    <div class="brand-header">
+        {% if logo_base64 %}
+        <div class="logo"><img src="data:image/png;base64,{{ logo_base64 }}"></div>
+        {% endif %}
+        <div class="name-wrap">
+            <div class="biz-name">{{ business_name }}</div>
+            {% if tagline_sub %}<div class="biz-sub">{{ tagline_sub }}</div>{% endif %}
+        </div>
+    </div>
+
+    <div class="photo-area">
+        {% if photo_base64 %}
+        <img src="data:image/jpeg;base64,{{ photo_base64 }}">
+        {% endif %}
+        <div class="gradient"></div>
+        <div class="text-overlay">
+            <div class="main-text">{{ headline }}</div>
+            <div class="sub-text">{{ sub_copy }}</div>
+            <div class="accent-line"></div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        {% if qr_base64 %}
+        <div class="qr"><img src="data:image/png;base64,{{ qr_base64 }}"></div>
+        {% endif %}
+        <div class="info">
+            {% if address %}<div class="address">{{ address }}</div>{% endif %}
+            {% if phone %}
+            <div class="phone-label">예약·상담문의</div>
+            <div class="phone">{{ phone }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

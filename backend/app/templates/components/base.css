@@ -1,0 +1,108 @@
+/* 공통 폰트 */
+@font-face { font-family: 'Gmarket'; src: url('file:///app/fonts/GmarketSansBold.otf'); }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Bold.otf'); }
+@font-face { font-family: 'NanumSquare'; src: url('file:///app/fonts/NanumSquareRoundEB.ttf'); }
+@font-face { font-family: 'DoHyeon'; src: url('file:///app/fonts/DoHyeon-Regular.ttf'); }
+@font-face { font-family: 'Jua'; src: url('file:///app/fonts/Jua-Regular.ttf'); }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    --primary: {{ primary }};
+    --accent: {{ accent }};
+    --text-color: {{ text_color }};
+    --panel-bg: {{ panel_bg }};
+    --text-on-primary: {{ text_on_primary }};
+}
+
+body {
+    width: {{ width }}px;
+    height: {{ height }}px;
+    overflow: hidden;
+    font-family: 'Pretendard', 'NanumSquare', sans-serif;
+}
+
+/* 브랜드 헤더 */
+.brand-header {
+    display: flex;
+    align-items: center;
+    padding: 20px 24px;
+    gap: 16px;
+    background: rgba(0,0,0,0.8);
+    height: 100px;
+    flex-shrink: 0;
+}
+.brand-header .logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    flex-shrink: 0;
+}
+.brand-header .logo img { width: 100%; height: 100%; object-fit: cover; }
+.brand-header .name-wrap { flex: 1; }
+.brand-header .biz-name {
+    font-family: 'Gmarket';
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+}
+.brand-header .biz-sub {
+    font-size: 14px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+}
+
+/* 하단 상시바 */
+.bottom-bar {
+    display: flex;
+    align-items: center;
+    padding: 16px 24px;
+    gap: 16px;
+    background: rgba(17,17,17,0.93);
+    height: 120px;
+    flex-shrink: 0;
+}
+.bottom-bar .qr {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    flex-shrink: 0;
+}
+.bottom-bar .qr img { width: 100%; height: 100%; object-fit: cover; }
+.bottom-bar .info { flex: 1; padding-left: 0; }
+.bottom-bar .address { font-size: 16px; color: rgba(255,255,255,0.8); }
+.bottom-bar .phone-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; letter-spacing: 1px; }
+.bottom-bar .phone {
+    font-family: 'Gmarket';
+    font-size: 32px;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-top: 2px;
+}
+
+/* 서비스 뱃지 */
+.badge {
+    display: inline-flex;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* 네이버 배지 */
+.naver-badge {
+    display: inline-flex;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #03C75A;
+    font-family: 'Gmarket';
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}

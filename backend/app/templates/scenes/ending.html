@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+{% include 'components/base.css' %}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: #0C0C0C;
+}
+
+/* 로고 + 브랜드 섹션 */
+.brand-hero {
+    padding: 50px 60px 30px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.brand-hero .logo-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 0 auto 16px;
+    background: #fff;
+}
+.brand-hero .logo-large img { width: 100%; height: 100%; object-fit: cover; }
+.brand-hero .biz-name-large {
+    font-family: 'Gmarket';
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+}
+.brand-hero .tagline {
+    font-size: 20px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 8px;
+}
+.divider {
+    width: 80px;
+    height: 3px;
+    background: var(--accent, #FF3B30);
+    border-radius: 2px;
+    margin: 20px auto;
+}
+
+/* 서비스 리스트 */
+.service-list {
+    padding: 0 50px;
+    flex-shrink: 0;
+}
+.service-list-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent, #FF3B30);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+}
+.service-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.service-row .num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--primary, #333);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-on-primary, #fff);
+    flex-shrink: 0;
+    margin-right: 14px;
+}
+.service-row .svc-name {
+    font-size: 20px;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* 운영 정보 */
+.hours-section {
+    padding: 24px 50px;
+    flex: 1;
+}
+.hours-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent, #FF3B30);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+.hours-table {
+    width: 100%;
+}
+.hours-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.hours-row .day {
+    font-size: 18px;
+    color: rgba(255,255,255,0.6);
+}
+.hours-row .time {
+    font-size: 18px;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 연락처 풋터 */
+.contact-bar {
+    background: var(--primary, #222);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 50px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+}
+.contact-bar .qr-box {
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    flex-shrink: 0;
+}
+.contact-bar .qr-box img { width: 100%; height: 100%; object-fit: cover; }
+.contact-bar .contact-info { flex: 1; }
+.contact-bar .contact-addr {
+    font-size: 16px;
+    color: rgba(255,255,255,0.7);
+}
+.contact-bar .contact-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 6px;
+    letter-spacing: 1px;
+}
+.contact-bar .contact-phone {
+    font-family: 'Gmarket';
+    font-size: 36px;
+    color: #fff;
+    letter-spacing: -1px;
+    margin-top: 2px;
+}
+</style>
+</head>
+<body>
+    <div class="brand-hero">
+        {% if logo_base64 %}
+        <div class="logo-large"><img src="data:image/png;base64,{{ logo_base64 }}"></div>
+        {% endif %}
+        <div class="biz-name-large">{{ business_name }}</div>
+        {% if tagline %}<div class="tagline">{{ tagline }}</div>{% endif %}
+        <div class="divider"></div>
+    </div>
+
+    {% if services %}
+    <div class="service-list">
+        <div class="service-list-title">SERVICES</div>
+        {% for svc in services %}
+        <div class="service-row">
+            <div class="num">{{ loop.index }}</div>
+            <div class="svc-name">{{ svc }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if hours %}
+    <div class="hours-section">
+        <div class="hours-title">HOURS</div>
+        <div class="hours-table">
+            {% for item in hours %}
+            <div class="hours-row">
+                <div class="day">{{ item.day }}</div>
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="contact-bar">
+        {% if qr_base64 %}
+        <div class="qr-box"><img src="data:image/png;base64,{{ qr_base64 }}"></div>
+        {% endif %}
+        <div class="contact-info">
+            {% if address %}<div class="contact-addr">{{ address }}</div>{% endif %}
+            {% if phone %}
+            <div class="contact-label">예약·상담문의</div>
+            <div class="contact-phone">{{ phone }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

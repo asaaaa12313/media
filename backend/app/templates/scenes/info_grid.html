@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+{% include 'components/base.css' %}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background: #0C0C0C;
+}
+
+.photo-area {
+    height: 600px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.photo-area img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.photo-area .gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.7) 100%);
+}
+.photo-area .text-overlay {
+    position: absolute;
+    left: 40px;
+    right: 40px;
+    bottom: 30px;
+}
+.photo-area .section-title {
+    font-family: 'Gmarket';
+    font-size: 42px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -1px;
+}
+.photo-area .section-sub {
+    font-size: 18px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 6px;
+}
+
+/* 서비스 그리드 */
+.service-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 24px 24px;
+    background: var(--panel-bg, #111);
+}
+.service-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px 12px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.service-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--accent, #FF3B30);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #fff;
+}
+.service-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-color, #fff);
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* 추가 정보 바 */
+.info-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: rgba(255,255,255,0.04);
+    flex-shrink: 0;
+}
+.info-strip .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: var(--primary, #333);
+    font-size: 16px;
+    color: var(--text-on-primary, #fff);
+    font-weight: 600;
+}
+</style>
+</head>
+<body>
+    <div class="brand-header">
+        {% if logo_base64 %}
+        <div class="logo"><img src="data:image/png;base64,{{ logo_base64 }}"></div>
+        {% endif %}
+        <div class="name-wrap">
+            <div class="biz-name">{{ business_name }}</div>
+            {% if tagline_sub %}<div class="biz-sub">{{ tagline_sub }}</div>{% endif %}
+        </div>
+    </div>
+
+    <div class="photo-area">
+        {% if photo_base64 %}
+        <img src="data:image/jpeg;base64,{{ photo_base64 }}">
+        {% endif %}
+        <div class="gradient"></div>
+        <div class="text-overlay">
+            <div class="section-title">{{ headline }}</div>
+            {% if sub_copy %}<div class="section-sub">{{ sub_copy }}</div>{% endif %}
+        </div>
+    </div>
+
+    <div class="service-grid">
+        {% for svc in services %}
+        <div class="service-item">
+            <div class="service-icon">{{ svc.icon if svc.icon is defined else '✓' }}</div>
+            <div class="service-name">{{ svc.name if svc.name is defined else svc }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if extra_tags %}
+    <div class="info-strip">
+        {% for tag in extra_tags %}
+        <div class="tag">{{ tag }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="bottom-bar">
+        {% if qr_base64 %}
+        <div class="qr"><img src="data:image/png;base64,{{ qr_base64 }}"></div>
+        {% endif %}
+        <div class="info">
+            {% if address %}<div class="address">{{ address }}</div>{% endif %}
+            {% if phone %}
+            <div class="phone-label">예약·상담문의</div>
+            <div class="phone">{{ phone }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

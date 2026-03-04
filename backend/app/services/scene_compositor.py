@@ -2,15 +2,19 @@
 
 멀티 해상도 지원: 1080x1650(기본), 1080x1920, 1080x2560
 
-사진 전용 씬: Pillow로 정적 프레임 생성
+풀스크린 HTML 렌더링 (우선) → Pillow fallback
+사진 전용 씬: HTML/Pillow로 정적 프레임 생성
 영상 포함 씬: FFmpeg로 클립 구간 추출 + 오버레이
 """
 from __future__ import annotations
+import base64
+import io
 import logging
 import shutil
 import subprocess
 from pathlib import Path
 from PIL import Image
+from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +32,102 @@ from app.services.brand_system import load_logo, load_logo_small
 from app.services.qr_generator import generate_qr
 from app.services.image_processor import center_crop_resize
 from app.models.schemas import BusinessInfo, BrandConfig, SceneConfig
+
+_jinja_env = Environment(loader=FileSystemLoader("app/templates"))
+
+# 씬 타입 → HTML 템플릿 매핑
+_SCENE_HTML_MAP = {
+    "intro": "scenes/intro.html",
+    "gallery": "scenes/content.html",
+    "highlight": "scenes/content.html",
+    "review": "scenes/content.html",
+    "info_card": "scenes/info_grid.html",
+    "feature_list": "scenes/info_grid.html",
+    "promotion": "scenes/promo.html",
+    "cta": "scenes/ending.html",
+}
+
+
+def _img_to_base64(img: Image.Image | None, fmt: str = "PNG") -> str:
+    """PIL Image → base64 문자열"""
+    if img is None:
+        return ""
+    buf = io.BytesIO()
+    img.save(buf, format=fmt)
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def _rgb_to_hex(rgb: tuple) -> str:
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def _try_fullscreen_html_render(
+    scene: SceneConfig,
+    scene_type: str,
+    photo: Image.Image | None,
+    business: BusinessInfo,
+    template: dict,
+    logo: Image.Image | None,
+    qr: Image.Image | None,
+    width: int,
+    height: int,
+) -> Image.Image | None:
+    """씬을 풀스크린 HTML로 렌더링. 실패 시 None → Pillow fallback."""
+    tmpl_path = _SCENE_HTML_MAP.get(scene_type)
+    if not tmpl_path:
+        return None
+
+    try:
+        from app.services.html_renderer import render_html_sync
+
+        tmpl = _jinja_env.get_template(tmpl_path)
+
+        # 사진을 base64로 변환
+        photo_b64 = ""
+        if photo:
+            photo_b64 = _img_to_base64(photo, "JPEG")
+
+        # 서비스 목록 (info_grid용)
+        services = business.services[:6] if business.services else []
+
+        html = tmpl.render(
+            width=width, height=height,
+            business_name=business.name,
+            tagline=business.tagline,
+            tagline_sub=business.tagline or "",
+            headline=scene.headline or business.name,
+            sub_copy=scene.subtext or business.tagline or "",
+            highlight=scene.subtext if scene_type in ("highlight", "review") else "",
+            photo_base64=photo_b64,
+            logo_base64=_img_to_base64(logo),
+            qr_base64=_img_to_base64(qr),
+            phone=business.phone,
+            address=business.address,
+            services=services,
+            extra_tags=[],
+            # promo 전용
+            discount="",
+            discount_label="",
+            cta_text="지금 바로 방문하세요" if scene_type == "cta" else "",
+            naver_search=f"네이버에서 '{business.name}' 검색" if scene_type == "promotion" else "",
+            # ending 전용
+            hours=[],
+            # CSS 변수
+            primary=_rgb_to_hex(template.get("primary", (50, 50, 50))),
+            accent=_rgb_to_hex(template.get("accent", (255, 200, 50))),
+            text_color=_rgb_to_hex(template.get("text_on_content", (255, 255, 255))),
+            panel_bg=_rgb_to_hex(template.get("panel_bg", (255, 255, 255))),
+            text_on_primary=_rgb_to_hex(template.get("text_on_primary", (255, 255, 255))),
+        )
+
+        result = render_html_sync(html, width, height)
+        if result:
+            logger.info(f"[fullscreen_html] {scene_type} → {tmpl_path} 렌더링 성공")
+            return result.convert("RGB")
+        return None
+    except Exception as e:
+        logger.warning(f"[fullscreen_html] {scene_type} 렌더링 실패: {e}")
+        return None
 
 
 def _get_scene_at_time(t: float, timings: list[tuple[float, float]] | None = None) -> int:
@@ -137,12 +237,13 @@ def generate_all_frames(
 
     # SceneLayout 빌드
     layouts = _build_scene_layouts(business, scenes, template)
+    default_sequence = get_scene_sequence(business.category, len(scenes))
 
     # 동적 타이밍 생성
     timings = generate_scene_timings(len(scenes))
     total_frames = int(TARGET_DURATION * FPS)
 
-    # 씬별 정적 프레임 프리렌더
+    # 씬별 정적 프레임 프리렌더 (HTML 우선 → Pillow fallback)
     scene_frames: dict[int, Image.Image] = {}
     previews_dir = job_dir / "previews"
     previews_dir.mkdir(exist_ok=True)
@@ -150,7 +251,19 @@ def generate_all_frames(
     for i, layout in enumerate(layouts):
         if i < len(scenes) and scenes[i].media_type == "photo":
             photo_idx = min(scenes[i].media_index, max(0, len(photos) - 1))
-            frame = renderer.render_scene(layout, photos, photo_idx)
+            photo = photos[photo_idx] if photo_idx < len(photos) else (photos[0] if photos else None)
+
+            # HTML 풀스크린 렌더링 시도
+            scene_type = scenes[i].scene_type or (default_sequence[i] if i < len(default_sequence) else "cta")
+            frame = _try_fullscreen_html_render(
+                scenes[i], scene_type, photo, business, template,
+                logo_small, qr, spec.width, spec.height,
+            )
+
+            # Pillow fallback
+            if frame is None:
+                frame = renderer.render_scene(layout, photos, photo_idx)
+
             # 프리뷰 저장
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
             scene_frames[i] = frame
@@ -280,10 +393,11 @@ def generate_mixed_video(
     renderer.set_bottom_bar(info_panel)
 
     layouts = _build_scene_layouts(business, scenes, template)
+    default_sequence = get_scene_sequence(business.category, len(scenes))
     timings = generate_scene_timings(len(scenes))
     clip_paths = []
 
-    # Phase 1: 씬 이미지 렌더링 + 디스크 저장 (Pillow 작업)
+    # Phase 1: 씬 이미지 렌더링 + 디스크 저장
     scene_render_info: list[dict] = []
     for i, (layout, scene) in enumerate(zip(layouts, scenes)):
         start, end = timings[i] if i < len(timings) else (0, 3)
@@ -306,9 +420,18 @@ def generate_mixed_video(
                 "overlay_path": str(overlay_path), "bar_path": str(bar_path),
             })
         else:
-            # 사진 씬: 프레임 렌더링 → 디스크 저장
+            # 사진 씬: HTML 풀스크린 우선 → Pillow fallback
             photo_idx = min(scene.media_index, max(0, len(photos) - 1))
-            frame = renderer.render_scene(layout, photos, photo_idx)
+            photo = photos[photo_idx] if photo_idx < len(photos) else (photos[0] if photos else None)
+
+            scene_type = scene.scene_type or (default_sequence[i] if i < len(default_sequence) else "cta")
+            frame = _try_fullscreen_html_render(
+                scene, scene_type, photo, business, template,
+                logo_small, qr, W, H,
+            )
+            if frame is None:
+                frame = renderer.render_scene(layout, photos, photo_idx)
+
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
 
             frame_path = clips_dir / f"still_{i}.png"
