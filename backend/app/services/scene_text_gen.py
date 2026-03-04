@@ -165,7 +165,7 @@ def _generate_with_gemini(business: BusinessInfo, num_scenes: int) -> list[Scene
         prompt = _build_prompt(business, num_scenes)
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.1-pro-preview",
             contents=prompt,
         )
 
