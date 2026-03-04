@@ -4,14 +4,26 @@
 - 섹션 1 (~33%): 홍보 영역 (업종별 3패턴)
 - 섹션 2 (~36%): 브랜드 정보 + QR코드
 - 섹션 3 (~31%): 연락처 푸터 (브랜드 컬러 배경)
+
+HTML(Playwright) 우선 렌더링 → 실패 시 Pillow fallback.
 """
 from __future__ import annotations
+import base64
+import io
+import logging
+
 from PIL import Image, ImageDraw
+from jinja2 import Environment, FileSystemLoader
+
 from app.core.config import WIDTH
 from app.services.text_layout import (
     _get_font, draw_badge_grid, TextEffects, MARGIN,
 )
 from app.services.decorations import Decorations
+
+logger = logging.getLogger(__name__)
+
+_jinja_env = Environment(loader=FileSystemLoader("app/templates"))
 
 
 # 업종별 정보 패널 스타일 매핑
@@ -41,6 +53,56 @@ def _draw_gradient_divider(draw: ImageDraw.Draw, y: int, color: tuple,
                   fill=(*color[:3], alpha))
 
 
+def _rgb_to_hex(rgb: tuple) -> str:
+    """RGB 튜플 → #RRGGBB"""
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def _img_to_base64(img: Image.Image | None) -> str:
+    """PIL Image → base64 문자열 (None이면 빈 문자열)"""
+    if img is None:
+        return ""
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def _try_html_render(
+    template: dict, business_name: str, tagline: str,
+    services: list[str], phone: str, address: str,
+    category: str, logo: Image.Image | None,
+    qr: Image.Image | None, panel_height: int,
+) -> Image.Image | None:
+    """HTML 템플릿 → Playwright 렌더링 시도. 실패 시 None."""
+    try:
+        from app.services.html_renderer import render_html_sync
+
+        style = INFO_PANEL_STYLE.get(category, "brand_focus")
+        tmpl = _jinja_env.get_template(f"info_panel/{style}.html")
+
+        html = tmpl.render(
+            width=WIDTH, height=panel_height,
+            business_name=business_name,
+            tagline=tagline or f"{business_name} 방문을 환영합니다!",
+            sub_copy="QR코드를 스캔해보세요!" if tagline else business_name,
+            tagline_sub=tagline if tagline else "",
+            services=services[:4] if services else [],
+            phone=phone, address=address,
+            primary=_rgb_to_hex(template.get("primary", (50, 50, 50))),
+            accent=_rgb_to_hex(template.get("accent", (255, 200, 50))),
+            text_color=_rgb_to_hex(template.get("panel_text", (50, 50, 50))),
+            panel_bg=_rgb_to_hex(template.get("panel_bg", (255, 255, 255))),
+            text_on_primary=_rgb_to_hex(template.get("text_on_primary", (255, 255, 255))),
+            qr_base64=_img_to_base64(qr),
+            logo_base64=_img_to_base64(logo),
+        )
+
+        return render_html_sync(html, WIDTH, panel_height)
+    except Exception as e:
+        logger.warning(f"HTML 정보패널 렌더링 실패: {e}")
+        return None
+
+
 def render_info_panel(
     template: dict,
     business_name: str,
@@ -53,8 +115,18 @@ def render_info_panel(
     qr: Image.Image | None = None,
     panel_height: int = 550,
 ) -> Image.Image:
-    """550px 3-섹션 디자인 패널 렌더링"""
+    """550px 3-섹션 디자인 패널 렌더링 (HTML 우선 → Pillow fallback)"""
     services = services or []
+
+    # HTML(Playwright) 렌더링 우선 시도
+    html_result = _try_html_render(
+        template, business_name, tagline, services,
+        phone, address, category, logo, qr, panel_height,
+    )
+    if html_result is not None:
+        return html_result
+
+    # Pillow fallback
     panel = Image.new("RGBA", (WIDTH, panel_height),
                       (*template.get("panel_bg", (255, 255, 255)), 255))
     draw = ImageDraw.Draw(panel)

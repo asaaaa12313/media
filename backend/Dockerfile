@@ -6,11 +6,12 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    playwright install --with-deps chromium
+
 COPY backend/fonts/ /app/fonts/
 RUN mkdir -p /app/assets
-
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 

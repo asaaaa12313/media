@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@font-face { font-family: 'Gmarket'; src: url('file:///app/fonts/GmarketSansBold.otf'); }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Bold.otf'); }
+@font-face { font-family: 'NanumSquare'; src: url('file:///app/fonts/NanumSquareRoundEB.ttf'); }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    width: {{ width }}px;
+    height: {{ height }}px;
+    background: {{ panel_bg }};
+    font-family: 'Pretendard', 'NanumSquare', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 상단 그라데이션 구분선 */
+.top-divider {
+    height: 3px;
+    background: linear-gradient(90deg, transparent 10%, {{ primary }} 50%, transparent 90%);
+    flex-shrink: 0;
+}
+
+/* 섹션 1: 브랜드 포커스 */
+.brand-focus-section {
+    flex: 0 0 33%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 60px;
+    position: relative;
+}
+.accent-line {
+    width: 120px;
+    height: 2px;
+    background: {{ accent }};
+    margin-bottom: 16px;
+}
+.display-name {
+    font-family: 'Gmarket';
+    font-size: 52px;
+    color: {{ text_color }};
+    text-align: center;
+    line-height: 1.2;
+}
+.display-tagline {
+    margin-top: 12px;
+    font-size: 26px;
+    color: {{ text_color }}80;
+    text-align: center;
+}
+.accent-line-bottom {
+    width: 120px;
+    height: 2px;
+    background: {{ accent }};
+    margin-top: 16px;
+}
+
+/* 섹션 2: 브랜드 정보 (서브텍스트 + QR) */
+.brand-section {
+    flex: 0 0 36%;
+    display: flex;
+    align-items: center;
+    padding: 0 60px;
+    border-top: 1px solid {{ text_color }}15;
+    gap: 20px;
+}
+.brand-info { flex: 1; }
+.brand-logo { height: 50px; margin-bottom: 10px; }
+.brand-sub {
+    font-size: 28px;
+    color: {{ text_color }}99;
+    line-height: 1.4;
+}
+.qr-wrapper {
+    width: 150px;
+    height: 150px;
+    border: 2px solid {{ primary }}40;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    flex-shrink: 0;
+}
+.qr-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 섹션 3: 연락처 푸터 */
+.contact-footer {
+    flex: 1;
+    background: {{ primary }};
+    border-radius: 22px 22px 0 0;
+    padding: 14px 60px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.address {
+    font-size: 22px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.contact-label {
+    font-size: 18px;
+    opacity: 0.6;
+    margin-top: 8px;
+}
+.phone {
+    font-family: 'Gmarket';
+    font-size: 42px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+    <div class="top-divider"></div>
+
+    <div class="brand-focus-section">
+        <div class="accent-line"></div>
+        <div class="display-name">{{ business_name }}</div>
+        {% if tagline %}
+        <div class="display-tagline">{{ tagline }}</div>
+        {% endif %}
+        <div class="accent-line-bottom"></div>
+    </div>
+
+    <div class="brand-section">
+        <div class="brand-info">
+            {% if logo_base64 %}
+            <img class="brand-logo" src="data:image/png;base64,{{ logo_base64 }}">
+            {% endif %}
+            {% if tagline_sub %}
+            <div class="brand-sub">{{ tagline_sub }}</div>
+            {% endif %}
+        </div>
+        {% if qr_base64 %}
+        <div class="qr-wrapper">
+            <img src="data:image/png;base64,{{ qr_base64 }}">
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="contact-footer">
+        {% if address %}
+        <div class="address">📍 {{ address }}</div>
+        {% endif %}
+        {% if phone %}
+        <div class="contact-label">예약·상담문의</div>
+        <div class="phone">☎ {{ phone }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>
