@@ -110,6 +110,7 @@ def compose_from_video(video_path: str, bgm_path: str,
         "-movflags", "+faststart",
         output_path,
     ])
+    cmd.extend(codec_opts)
 
     logger.info(f"[compose_from_video] cmd: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
