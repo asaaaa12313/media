@@ -22,16 +22,21 @@ def _get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
 # ─────────────────────────────────────────────
 
 class TextEffects:
-    """텍스트 효과 렌더러"""
+    """텍스트 효과 렌더러 (12종)"""
 
     @staticmethod
     def apply(draw: ImageDraw.Draw, text: str, x: int, y: int,
               font: ImageFont.FreeTypeFont, color: tuple,
-              effect: str = "none", params: dict | None = None):
-        """효과를 적용하여 텍스트 렌더링"""
+              effect: str = "none", params: dict | None = None,
+              layer: Image.Image | None = None):
+        """효과를 적용하여 텍스트 렌더링. layer는 이미지 레벨 합성 효과용."""
         params = params or {}
         method = getattr(TextEffects, f"_effect_{effect}", TextEffects._effect_none)
-        method(draw, text, x, y, font, color, params)
+        # gradient_text는 layer 필요
+        if effect == "gradient_text" and layer is not None:
+            method(draw, text, x, y, font, color, params, layer)
+        else:
+            method(draw, text, x, y, font, color, params)
 
     @staticmethod
     def _effect_none(draw, text, x, y, font, color, _params):
@@ -93,6 +98,111 @@ class TextEffects:
                 draw.text((x + dx, y + dy), text, font=font,
                           fill=(*gc[:3], alpha))
         draw.text((x, y), text, font=font, fill=color)
+
+    # ── 새 효과 6종 ──
+
+    @staticmethod
+    def _effect_shadow_3d(draw, text, x, y, font, color, params):
+        """3D 깊이감 그림자: 여러 레이어로 입체 효과"""
+        depth = params.get("depth", 6)
+        sc = params.get("shadow_color", (0, 0, 0))
+        for d in range(depth, 0, -1):
+            alpha = int(40 + 25 * (depth - d) / depth)
+            draw.text((x + d, y + d), text, font=font, fill=(*sc[:3], alpha))
+        draw.text((x, y), text, font=font, fill=color)
+
+    @staticmethod
+    def _effect_neon(draw, text, x, y, font, color, params):
+        """네온사인: 넓은 glow + 밝은 내부"""
+        nc = params.get("neon_color", color[:3])
+        for r in range(8, 0, -1):
+            alpha = int(100 / r)
+            for dx in range(-r, r + 1, max(1, r // 2)):
+                for dy in range(-r, r + 1, max(1, r // 2)):
+                    if dx * dx + dy * dy <= r * r:
+                        draw.text((x + dx, y + dy), text, font=font,
+                                  fill=(*nc[:3], alpha))
+        # 외곽선
+        draw.text((x, y), text, font=font, fill=(*nc[:3], 255),
+                  stroke_width=2, stroke_fill=(*nc[:3], 180))
+        # 밝은 내부
+        draw.text((x, y), text, font=font, fill=(255, 255, 255, 240))
+
+    @staticmethod
+    def _effect_double_outline(draw, text, x, y, font, color, params):
+        """이중 외곽선: 안쪽/바깥쪽 다른 색"""
+        outer_width = params.get("outer_width", 6)
+        inner_width = params.get("inner_width", 3)
+        outer_color = params.get("outer_color", (0, 0, 0))
+        inner_color = params.get("inner_color", (255, 255, 255))
+        # 바깥 외곽선
+        draw.text((x, y), text, font=font, fill=color,
+                  stroke_width=outer_width, stroke_fill=outer_color)
+        # 안쪽 외곽선
+        draw.text((x, y), text, font=font, fill=color,
+                  stroke_width=inner_width, stroke_fill=inner_color)
+
+    @staticmethod
+    def _effect_underline_accent(draw, text, x, y, font, color, params):
+        """밑줄 강조: 텍스트 아래 두꺼운 컬러 바"""
+        bbox = draw.textbbox((x, y), text, font=font)
+        bar_color = params.get("bar_color", (255, 200, 50))
+        bar_alpha = params.get("bar_alpha", 220)
+        bar_height = params.get("bar_height", 8)
+        pad_x = params.get("padding_x", 6)
+        draw.rectangle(
+            [bbox[0] - pad_x, bbox[3] - bar_height // 2,
+             bbox[2] + pad_x, bbox[3] + bar_height // 2],
+            fill=(*bar_color[:3], bar_alpha)
+        )
+        draw.text((x, y), text, font=font, fill=color)
+
+    @staticmethod
+    def _effect_bg_pill(draw, text, x, y, font, color, params):
+        """둥근 필 형태 배경 (완전 둥근 모서리)"""
+        bbox = draw.textbbox((x, y), text, font=font)
+        pad_x = params.get("padding_x", 24)
+        pad_y = params.get("padding_y", 12)
+        bg = params.get("bg_color", (0, 0, 0))
+        ba = params.get("bg_alpha", 180)
+        pill_h = bbox[3] - bbox[1] + pad_y * 2
+        radius = pill_h // 2
+        draw.rounded_rectangle(
+            [bbox[0] - pad_x, bbox[1] - pad_y,
+             bbox[2] + pad_x, bbox[3] + pad_y],
+            radius=radius, fill=(*bg[:3], ba)
+        )
+        draw.text((x, y), text, font=font, fill=color)
+
+    @staticmethod
+    def _effect_gradient_text(draw, text, x, y, font, color, params, layer=None):
+        """그라데이션 텍스트: 상하 2색"""
+        color_top = params.get("color_top", color[:3])
+        color_bottom = params.get("color_bottom", (255, 200, 50))
+        if layer is None:
+            # layer 없으면 일반 렌더링으로 폴백
+            draw.text((x, y), text, font=font, fill=color)
+            return
+        bbox = draw.textbbox((x, y), text, font=font)
+        tw = bbox[2] - bbox[0] + 4
+        th = bbox[3] - bbox[1] + 4
+        if tw <= 0 or th <= 0:
+            return
+        # 텍스트 마스크 생성
+        mask_img = Image.new("L", (tw, th), 0)
+        mask_draw = ImageDraw.Draw(mask_img)
+        mask_draw.text((0, 0), text, font=font, fill=255)
+        # 그라데이션 이미지 생성
+        grad_img = Image.new("RGBA", (tw, th))
+        for row in range(th):
+            ratio = row / max(th - 1, 1)
+            r = int(color_top[0] * (1 - ratio) + color_bottom[0] * ratio)
+            g = int(color_top[1] * (1 - ratio) + color_bottom[1] * ratio)
+            b = int(color_top[2] * (1 - ratio) + color_bottom[2] * ratio)
+            for col in range(tw):
+                if mask_img.getpixel((col, row)) > 0:
+                    grad_img.putpixel((col, row), (r, g, b, mask_img.getpixel((col, row))))
+        layer.paste(grad_img, (bbox[0], bbox[1]), grad_img)
 
 
 # ─────────────────────────────────────────────
@@ -168,7 +278,8 @@ def draw_text_in_region(draw: ImageDraw.Draw, text: str,
                         region: dict, font_name: str, size: int,
                         color: tuple, effect: str = "none",
                         effect_params: dict | None = None,
-                        max_lines: int = 3) -> int:
+                        max_lines: int = 3,
+                        layer: Image.Image | None = None) -> int:
     """영역 내에 텍스트 렌더링 (자동 크기 조정 + 줄바꿈 + 효과 적용).
 
     Returns: 실제 사용한 높이
@@ -223,7 +334,7 @@ def draw_text_in_region(draw: ImageDraw.Draw, text: str,
             x = rx
 
         y = ry + total_h
-        TextEffects.apply(draw, line.strip(), x, y, font, color, effect, effect_params)
+        TextEffects.apply(draw, line.strip(), x, y, font, color, effect, effect_params, layer=layer)
         total_h += text_h + line_spacing
 
     return total_h

@@ -18,6 +18,7 @@ from app.services.text_layout import (
     draw_text_in_region, draw_number_list, draw_badge_grid,
 )
 from app.services.image_processor import center_crop_resize, apply_overlay_fast
+from app.services.decorations import render_decorations
 
 
 # ─────────────────────────────────────────────
@@ -90,11 +91,13 @@ class TextBlock:
 class SceneLayout:
     """한 씬의 전체 레이아웃 정의"""
     scene_type: str = "intro"
-    photo_mode: str = "fullscreen"   # fullscreen, top_half, bottom_half, grid_2x2, none
+    photo_mode: str = "fullscreen"   # fullscreen, top_half, bottom_half, grid_2x2, left_half, right_half, top_two_thirds, center_circle
     photo_overlay: str = "gradient_bottom"
     text_blocks: list[TextBlock] = field(default_factory=list)
     background_color: tuple = (0, 0, 0)
     bottom_template: bool = False    # 하단을 브랜드 컬러 템플릿으로 채울지
+    overlay_color: tuple = (0, 0, 0)  # 오버레이 색상 (브랜드 컬러)
+    decorations: list[dict] = field(default_factory=list)  # 장식 요소
 
 
 # ─────────────────────────────────────────────
@@ -131,20 +134,27 @@ class LayoutRenderer:
 
         # 1) 사진 배치
         bottom_tpl = getattr(layout, 'bottom_template', False)
+        ov_color = getattr(layout, 'overlay_color', (0, 0, 0))
         if photos and photo_index < len(photos):
             self._place_photo(frame, photos[photo_index],
                               layout.photo_mode, layout.photo_overlay,
-                              bottom_template=bottom_tpl)
+                              bottom_template=bottom_tpl, overlay_color=ov_color)
         elif photos:
             self._place_photo(frame, photos[0],
                               layout.photo_mode, layout.photo_overlay,
-                              bottom_template=bottom_tpl)
+                              bottom_template=bottom_tpl, overlay_color=ov_color)
 
         # 2) 텍스트 블록 배치
         txt_layer = Image.new("RGBA", (W, CH), (0, 0, 0, 0))
         draw = ImageDraw.Draw(txt_layer)
         for block in layout.text_blocks:
             self._render_text_block(draw, txt_layer, block)
+
+        # 2.5) 장식 요소 렌더링
+        decos = getattr(layout, 'decorations', [])
+        if decos:
+            render_decorations(txt_layer, decos, self.template)
+
         frame = Image.alpha_composite(frame, self._pad_to_full(txt_layer))
 
         # 3) 하단 바
@@ -159,34 +169,72 @@ class LayoutRenderer:
         return frame.convert("RGB")
 
     def _place_photo(self, frame: Image.Image, photo: Image.Image,
-                     mode: str, overlay: str, bottom_template: bool = False):
+                     mode: str, overlay: str, bottom_template: bool = False,
+                     overlay_color: tuple = (0, 0, 0)):
         """photo_mode에 따른 사진 배치"""
         W = self.spec.width
         CH = self.spec.content_height
 
         if mode == "fullscreen":
             img = center_crop_resize(photo, W, CH)
-            img = apply_overlay_fast(img, overlay)
+            img = apply_overlay_fast(img, overlay, overlay_color)
             frame.paste(img.convert("RGBA"), (0, 0))
 
         elif mode == "top_half":
             half_h = CH // 2
             img = center_crop_resize(photo, W, half_h)
-            img = apply_overlay_fast(img, overlay)
+            img = apply_overlay_fast(img, overlay, overlay_color)
             frame.paste(img.convert("RGBA"), (0, 0))
-
-            # 하단 템플릿 영역: 브랜드 컬러로 채움
             if bottom_template:
                 self._fill_bottom_template(frame, half_h, CH)
 
         elif mode == "bottom_half":
             half_h = CH // 2
             img = center_crop_resize(photo, W, half_h)
-            img = apply_overlay_fast(img, overlay)
+            img = apply_overlay_fast(img, overlay, overlay_color)
             frame.paste(img.convert("RGBA"), (0, half_h))
 
         elif mode == "grid_2x2":
-            self._place_grid_2x2(frame, photo, overlay)
+            self._place_grid_2x2(frame, photo, overlay, overlay_color)
+
+        elif mode == "left_half":
+            half_w = W // 2
+            img = center_crop_resize(photo, half_w, CH)
+            img = apply_overlay_fast(img, overlay, overlay_color)
+            frame.paste(img.convert("RGBA"), (0, 0))
+            primary = self.template.get("primary", (50, 50, 50))
+            right_bg = Image.new("RGBA", (W - half_w, CH), (*primary, 255))
+            frame.paste(right_bg, (half_w, 0))
+
+        elif mode == "right_half":
+            half_w = W // 2
+            img = center_crop_resize(photo, half_w, CH)
+            img = apply_overlay_fast(img, overlay, overlay_color)
+            primary = self.template.get("primary", (50, 50, 50))
+            left_bg = Image.new("RGBA", (half_w, CH), (*primary, 255))
+            frame.paste(left_bg, (0, 0))
+            frame.paste(img.convert("RGBA"), (half_w, 0))
+
+        elif mode == "top_two_thirds":
+            two_third_h = CH * 2 // 3
+            img = center_crop_resize(photo, W, two_third_h)
+            img = apply_overlay_fast(img, overlay, overlay_color)
+            frame.paste(img.convert("RGBA"), (0, 0))
+            self._fill_bottom_template(frame, two_third_h, CH)
+
+        elif mode == "center_circle":
+            primary = self.template.get("primary", (50, 50, 50))
+            bg = Image.new("RGBA", (W, CH), (*primary, 255))
+            frame.paste(bg, (0, 0))
+            circle_r = min(W, CH) // 3
+            diameter = circle_r * 2
+            img = center_crop_resize(photo, diameter, diameter)
+            mask = Image.new("L", (diameter, diameter), 0)
+            mask_draw = ImageDraw.Draw(mask)
+            mask_draw.ellipse([0, 0, diameter - 1, diameter - 1], fill=255)
+            cx = (W - diameter) // 2
+            cy = (CH - diameter) // 2
+            frame.paste(img.convert("RGBA"), (cx, cy), mask)
 
     def _fill_bottom_template(self, frame: Image.Image, top: int, bottom: int):
         """하단 영역을 브랜드 컬러로 채우고 자연스러운 그라데이션 전환"""
@@ -205,7 +253,7 @@ class LayoutRenderer:
             frame.paste(line, (0, top - blend_h + y), line)
 
     def _place_grid_2x2(self, frame: Image.Image, photo: Image.Image,
-                        overlay: str):
+                        overlay: str, overlay_color: tuple = (0, 0, 0)):
         """2x2 사진 그리드"""
         W = self.spec.width
         CH = self.spec.content_height
@@ -213,7 +261,7 @@ class LayoutRenderer:
         cell_w = (W - gap) // 2
         cell_h = (CH // 2 - gap) // 2
         img = center_crop_resize(photo, cell_w, cell_h)
-        img = apply_overlay_fast(img, overlay)
+        img = apply_overlay_fast(img, overlay, overlay_color)
 
         positions = [
             (0, 0), (cell_w + gap, 0),
@@ -288,13 +336,27 @@ def build_scene_layout(scene_type: str, template: dict,
                        custom_blocks: list[dict] | None = None,
                        font_color_override: str = "",
                        emphasis_color: str = "",
-                       emphasis_words: list[str] | None = None) -> SceneLayout:
+                       emphasis_words: list[str] | None = None,
+                       layout_variant: int = 0,
+                       photo_mode_override: str = "",
+                       photo_overlay_override: str = "",
+                       text_effect_override: str = "",
+                       font_name_override: str = "",
+                       font_size_scale: float = 1.0) -> SceneLayout:
     """씬 타입 + 텍스트 → SceneLayout 자동 구성
 
     custom_blocks가 주어지면 그대로 사용 (수정 기능용).
     없으면 SCENE_LAYOUTS 기본값 + headline/subtext로 자동 매핑.
+    layout_variant: 레이아웃 변형 선택 (0=기본)
+    *_override: 사용자 개별 속성 오버라이드
     """
-    layout_def = SCENE_LAYOUTS.get(scene_type, SCENE_LAYOUTS["intro"])
+    from app.core.config import SCENE_LAYOUT_VARIANTS
+    # 변형 선택
+    variants = SCENE_LAYOUT_VARIANTS.get(scene_type, [])
+    if layout_variant > 0 and layout_variant < len(variants):
+        layout_def = variants[layout_variant]
+    else:
+        layout_def = SCENE_LAYOUTS.get(scene_type, SCENE_LAYOUTS["intro"])
     text_color = template.get("text_on_content", (255, 255, 255))
     # 폰트 색상 오버라이드
     if font_color_override:
@@ -308,17 +370,24 @@ def build_scene_layout(scene_type: str, template: dict,
     effects = template.get("text_effects", {})
 
     has_bottom_tpl = layout_def.get("bottom_template", False)
+    # 오버라이드 적용
+    final_photo_mode = photo_mode_override or layout_def["photo_mode"]
+    final_photo_overlay = photo_overlay_override or layout_def["photo_overlay"]
+    overlay_color = template.get("primary", (0, 0, 0))
+    decos = layout_def.get("decorations", [])
 
     # 사용자 커스텀 블록이 있으면 우선 사용
     if custom_blocks:
         blocks = [TextBlock(**b) for b in custom_blocks]
         return SceneLayout(
             scene_type=scene_type,
-            photo_mode=layout_def["photo_mode"],
-            photo_overlay=layout_def["photo_overlay"],
+            photo_mode=final_photo_mode,
+            photo_overlay=final_photo_overlay,
             text_blocks=blocks,
             background_color=template.get("panel_bg", (0, 0, 0)),
             bottom_template=has_bottom_tpl,
+            overlay_color=overlay_color,
+            decorations=decos,
         )
 
     # 자동 매핑: 씬 타입의 text_slots를 기반으로 TextBlock 생성
@@ -345,9 +414,26 @@ def build_scene_layout(scene_type: str, template: dict,
         if not content:
             continue
 
-        # 효과 결정: 역할 기반 or 템플릿 기본값
-        effect_key = "headline" if role in ("headline", "brand_name", "accent") else "subtext"
+        # 효과 결정: 역할별 매핑 (brand_name, accent, cta_text 개별 지원)
+        if role in effects:
+            effect_key = role
+        elif role in ("headline", "brand_name"):
+            effect_key = "headline"
+        else:
+            effect_key = "subtext"
         eff = effects.get(effect_key, {"effect": slot.get("effect", "shadow"), "params": {}})
+        block_effect = text_effect_override or eff.get("effect", "shadow")
+        block_effect_params = {} if text_effect_override else eff.get("params", {})
+
+        # 폰트 오버라이드
+        block_font_role = slot["font_role"]
+        if font_name_override:
+            block_font_role = font_name_override
+
+        # 폰트 크기 스케일
+        block_font_size = slot["size"]
+        if font_size_scale != 1.0:
+            block_font_size = max(16, int(block_font_size * font_size_scale))
 
         # 강조 단어가 headline에 포함되면 강조 색상 적용
         block_color = text_color
@@ -359,20 +445,22 @@ def build_scene_layout(scene_type: str, template: dict,
             content=content,
             region=slot["region"],
             role=role,
-            font_role=slot["font_role"],
-            font_size=slot["size"],
+            font_role=block_font_role,
+            font_size=block_font_size,
             color=block_color,
-            effect=eff.get("effect", "shadow"),
-            effect_params=eff.get("params", {}),
+            effect=block_effect,
+            effect_params=block_effect_params,
         ))
 
     return SceneLayout(
         scene_type=scene_type,
-        photo_mode=layout_def["photo_mode"],
-        photo_overlay=layout_def["photo_overlay"],
+        photo_mode=final_photo_mode,
+        photo_overlay=final_photo_overlay,
         text_blocks=blocks,
         background_color=template.get("panel_bg", (0, 0, 0)),
         bottom_template=has_bottom_tpl,
+        overlay_color=overlay_color,
+        decorations=decos,
     )
 
 

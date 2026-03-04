@@ -41,6 +41,13 @@ class SceneConfig(BaseModel):
     font_color: str = ""       # #RRGGBB (비어있으면 템플릿 기본값)
     emphasis_color: str = ""   # 강조 단어 색상 #RRGGBB
     emphasis_words: list[str] = []  # 강조할 단어 리스트
+    # 확장 필드
+    layout_variant: int = 0          # 레이아웃 변형 (0=기본)
+    photo_mode: str = ""             # 사진 배치 모드 오버라이드
+    photo_overlay: str = ""          # 오버레이 타입 오버라이드
+    text_effect: str = ""            # 텍스트 효과 오버라이드
+    font_name: str = ""              # 폰트 직접 선택
+    font_size_scale: float = 1.0     # 폰트 크기 배율
 
 
 class SceneUpdateRequest(BaseModel):
@@ -54,6 +61,12 @@ class SceneUpdateRequest(BaseModel):
     text_position: Optional[str] = None
     font_color: Optional[str] = None
     emphasis_color: Optional[str] = None
+    # 확장 필드
+    layout_variant: Optional[int] = None
+    photo_overlay: Optional[str] = None
+    text_effect: Optional[str] = None
+    font_name: Optional[str] = None
+    font_size_scale: Optional[float] = None
 
 
 class GenerateRequest(BaseModel):

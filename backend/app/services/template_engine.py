@@ -21,9 +21,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "classic",
+        "decoration_color": (255, 200, 50),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 4, "stroke_color": (0, 0, 0)}},
             "subtext": {"effect": "bg_box", "params": {"bg_color": (0, 0, 0), "bg_alpha": 140, "radius": 12, "padding": 16}},
+            "brand_name": {"effect": "shadow", "params": {"offset_x": 2, "offset_y": 2, "shadow_alpha": 120}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (255, 200, 50)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (220, 50, 50), "bg_alpha": 220}},
         },
     },
     "헬스": {
@@ -46,9 +51,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "brand_bar",
+        "decoration_color": (255, 255, 100),
         "text_effects": {
             "headline": {"effect": "glow", "params": {"glow_color": (255, 50, 50), "glow_radius": 5}},
             "subtext": {"effect": "outline", "params": {"stroke_width": 3, "stroke_color": (0, 0, 0)}},
+            "brand_name": {"effect": "neon", "params": {"neon_color": (255, 50, 50)}},
+            "accent": {"effect": "shadow_3d", "params": {"depth": 5}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (220, 50, 50), "bg_alpha": 240}},
         },
     },
     "뷰티": {
@@ -71,9 +81,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "centered",
+        "decoration_color": (0, 180, 180),
         "text_effects": {
             "headline": {"effect": "shadow", "params": {"offset_x": 4, "offset_y": 4, "shadow_alpha": 160}},
             "subtext": {"effect": "highlight", "params": {"highlight_color": (0, 180, 180), "highlight_alpha": 180}},
+            "brand_name": {"effect": "none", "params": {}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (0, 180, 180)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (0, 180, 180), "bg_alpha": 200}},
         },
     },
     "학원": {
@@ -96,9 +111,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "card_style",
+        "decoration_color": (255, 165, 0),
         "text_effects": {
             "headline": {"effect": "bg_box", "params": {"bg_color": (50, 150, 80), "bg_alpha": 200, "radius": 8, "padding": 20}},
             "subtext": {"effect": "shadow", "params": {"offset_x": 3, "offset_y": 3, "shadow_alpha": 140}},
+            "brand_name": {"effect": "outline", "params": {"stroke_width": 2, "stroke_color": (0, 0, 0)}},
+            "accent": {"effect": "shadow_3d", "params": {"depth": 4}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (50, 150, 80), "bg_alpha": 220}},
         },
     },
     "병원": {
@@ -121,9 +141,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "centered",
+        "decoration_color": (200, 170, 100),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 3, "stroke_color": (80, 60, 30)}},
             "subtext": {"effect": "bg_box", "params": {"bg_color": (140, 100, 60), "bg_alpha": 180, "radius": 10, "padding": 14}},
+            "brand_name": {"effect": "shadow", "params": {"offset_x": 2, "offset_y": 2, "shadow_alpha": 100}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (200, 170, 100)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (140, 100, 60), "bg_alpha": 200}},
         },
     },
     "안경": {
@@ -146,9 +171,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "brand_bar",
+        "decoration_color": (255, 255, 255),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 4, "stroke_color": (0, 0, 0)}},
             "subtext": {"effect": "shadow", "params": {"offset_x": 3, "offset_y": 3, "shadow_alpha": 160}},
+            "brand_name": {"effect": "double_outline", "params": {"outer_color": (0, 0, 0), "inner_color": (230, 130, 30)}},
+            "accent": {"effect": "shadow_3d", "params": {"depth": 5}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (230, 130, 30), "bg_alpha": 240}},
         },
     },
     "부동산": {
@@ -171,9 +201,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "card_style",
+        "decoration_color": (70, 130, 220),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 3, "stroke_color": (20, 30, 60)}},
             "subtext": {"effect": "bg_box", "params": {"bg_color": (44, 62, 107), "bg_alpha": 180, "radius": 10, "padding": 16}},
+            "brand_name": {"effect": "shadow", "params": {"offset_x": 2, "offset_y": 2, "shadow_alpha": 120}},
+            "accent": {"effect": "none", "params": {}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (44, 62, 107), "bg_alpha": 220}},
         },
     },
     "골프": {
@@ -196,9 +231,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "brand_bar",
+        "decoration_color": (212, 175, 55),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 5, "stroke_color": (0, 0, 0)}},
             "subtext": {"effect": "shadow", "params": {"offset_x": 3, "offset_y": 3, "shadow_alpha": 160}},
+            "brand_name": {"effect": "shadow", "params": {"offset_x": 3, "offset_y": 3, "shadow_alpha": 140}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (212, 175, 55)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (26, 92, 42), "bg_alpha": 220}},
         },
     },
     "핸드폰": {
@@ -221,9 +261,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "Jua-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "minimal",
+        "decoration_color": (0, 200, 255),
         "text_effects": {
             "headline": {"effect": "glow", "params": {"glow_color": (0, 150, 255), "glow_radius": 4}},
             "subtext": {"effect": "outline", "params": {"stroke_width": 3, "stroke_color": (0, 0, 0)}},
+            "brand_name": {"effect": "neon", "params": {"neon_color": (0, 150, 255)}},
+            "accent": {"effect": "shadow_3d", "params": {"depth": 4}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (0, 102, 204), "bg_alpha": 230}},
         },
     },
     "동물병원": {
@@ -246,9 +291,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "classic",
+        "decoration_color": (255, 200, 100),
         "text_effects": {
             "headline": {"effect": "outline", "params": {"stroke_width": 3, "stroke_color": (0, 0, 0)}},
             "subtext": {"effect": "bg_box", "params": {"bg_color": (74, 173, 232), "bg_alpha": 160, "radius": 12, "padding": 14}},
+            "brand_name": {"effect": "shadow", "params": {"offset_x": 2, "offset_y": 2, "shadow_alpha": 120}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (255, 200, 100)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (74, 173, 232), "bg_alpha": 220}},
         },
     },
     "미용실": {
@@ -271,9 +321,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "centered",
+        "decoration_color": (255, 200, 220),
         "text_effects": {
             "headline": {"effect": "shadow", "params": {"offset_x": 4, "offset_y": 4, "shadow_alpha": 160}},
             "subtext": {"effect": "highlight", "params": {"highlight_color": (212, 97, 140), "highlight_alpha": 160}},
+            "brand_name": {"effect": "none", "params": {}},
+            "accent": {"effect": "underline_accent", "params": {"bar_color": (212, 97, 140)}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (212, 97, 140), "bg_alpha": 220}},
         },
     },
     "기타": {
@@ -296,9 +351,14 @@ CATEGORY_TEMPLATES = {
             "handwriting": "SingleDay-Regular.ttf",
             "badge": "NanumSquareRoundEB.ttf",
         },
+        "bar_style": "classic",
+        "decoration_color": (100, 180, 255),
         "text_effects": {
             "headline": {"effect": "shadow", "params": {"offset_x": 3, "offset_y": 3, "shadow_alpha": 140}},
             "subtext": {"effect": "none", "params": {}},
+            "brand_name": {"effect": "outline", "params": {"stroke_width": 2, "stroke_color": (0, 0, 0)}},
+            "accent": {"effect": "shadow_3d", "params": {"depth": 4}},
+            "cta_text": {"effect": "bg_pill", "params": {"bg_color": (74, 74, 74), "bg_alpha": 200}},
         },
     },
 }

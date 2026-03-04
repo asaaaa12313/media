@@ -62,6 +62,17 @@ interface SceneData {
   font_color: string;
   emphasis_color: string;
   emphasis_words: string[];
+  layout_variant: number;
+  photo_mode: string;
+  photo_overlay: string;
+  text_effect: string;
+  font_name: string;
+  font_size_scale: number;
+}
+
+interface OptionItem {
+  id: string;
+  label: string;
 }
 
 type InputMode = "url" | "manual";
@@ -78,6 +89,12 @@ function createEmptyScene(index: number): SceneData {
     font_color: "",
     emphasis_color: "",
     emphasis_words: [],
+    layout_variant: 0,
+    photo_mode: "",
+    photo_overlay: "",
+    text_effect: "",
+    font_name: "",
+    font_size_scale: 1.0,
   };
 }
 
@@ -140,6 +157,15 @@ export default function Home() {
   // Upload state
   const [uploadDir, setUploadDir] = useState("");
 
+  // Options (API에서 로드)
+  const [fontOptions, setFontOptions] = useState<string[]>([]);
+  const [effectOptions, setEffectOptions] = useState<OptionItem[]>([]);
+  const [overlayOptions, setOverlayOptions] = useState<OptionItem[]>([]);
+  const [photoModeOptions, setPhotoModeOptions] = useState<OptionItem[]>([]);
+
+  // 고급 설정 토글
+  const [advancedOpen, setAdvancedOpen] = useState<Record<number, boolean>>({});
+
   // Edit mode (생성 후)
   const [editMode, setEditMode] = useState(false);
   const [projectId, setProjectId] = useState("");
@@ -153,6 +179,25 @@ export default function Home() {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
+  }, []);
+
+  // 옵션 데이터 로드
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [fonts, effects, overlays, modes] = await Promise.all([
+          fetch(`${API}/api/options/fonts`).then(r => r.json()),
+          fetch(`${API}/api/options/effects`).then(r => r.json()),
+          fetch(`${API}/api/options/overlays`).then(r => r.json()),
+          fetch(`${API}/api/options/photo-modes`).then(r => r.json()),
+        ]);
+        if (fonts.fonts) setFontOptions(fonts.fonts);
+        if (effects.effects) setEffectOptions(effects.effects);
+        if (overlays.overlays) setOverlayOptions(overlays.overlays);
+        if (modes.photo_modes) setPhotoModeOptions(modes.photo_modes);
+      } catch { /* ignore */ }
+    };
+    loadOptions();
   }, []);
 
   // --- Handlers ---
@@ -234,7 +279,7 @@ export default function Home() {
     if (e.target.files?.[0]) setLogo(e.target.files[0]);
   };
 
-  const updateScene = (idx: number, field: keyof SceneData, value: string | string[]) => {
+  const updateScene = (idx: number, field: keyof SceneData, value: string | string[] | number) => {
     const updated = [...scenes];
     updated[idx] = { ...updated[idx], [field]: value };
     setScenes(updated);
@@ -249,6 +294,14 @@ export default function Home() {
   const removeScene = (idx: number) => {
     if (scenes.length <= MIN_SCENES) return;
     setScenes(scenes.filter((_, i) => i !== idx));
+  };
+
+  const moveScene = (idx: number, direction: "up" | "down") => {
+    const newIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= scenes.length) return;
+    const updated = [...scenes];
+    [updated[idx], updated[newIdx]] = [updated[newIdx], updated[idx]];
+    setScenes(updated);
   };
 
   const generateAiTexts = async () => {
@@ -281,6 +334,12 @@ export default function Home() {
           font_color: s.font_color || "",
           emphasis_color: s.emphasis_color || "",
           emphasis_words: s.emphasis_words || [],
+          layout_variant: scenes[i]?.layout_variant ?? 0,
+          photo_mode: scenes[i]?.photo_mode ?? "",
+          photo_overlay: scenes[i]?.photo_overlay ?? "",
+          text_effect: scenes[i]?.text_effect ?? "",
+          font_name: scenes[i]?.font_name ?? "",
+          font_size_scale: scenes[i]?.font_size_scale ?? 1.0,
         }));
         setScenes(newScenes);
       } else {
@@ -331,6 +390,12 @@ export default function Home() {
     formData.append("scene_font_colors", scenes.map((s) => s.font_color).join("|"));
     formData.append("scene_emphasis_colors", scenes.map((s) => s.emphasis_color).join("|"));
     formData.append("scene_text_positions", scenes.map((s) => s.text_position).join("|"));
+    formData.append("scene_layout_variants", scenes.map((s) => String(s.layout_variant)).join("|"));
+    formData.append("scene_photo_modes", scenes.map((s) => s.photo_mode).join("|"));
+    formData.append("scene_photo_overlays", scenes.map((s) => s.photo_overlay).join("|"));
+    formData.append("scene_text_effects", scenes.map((s) => s.text_effect).join("|"));
+    formData.append("scene_font_names", scenes.map((s) => s.font_name).join("|"));
+    formData.append("scene_font_size_scales", scenes.map((s) => String(s.font_size_scale)).join("|"));
 
     if (photoMode === "upload" && files.length > 0) {
       files.forEach((f) => formData.append("files", f));
@@ -427,6 +492,11 @@ export default function Home() {
           text_position: scene.text_position || null,
           font_color: scene.font_color || null,
           emphasis_color: scene.emphasis_color || null,
+          layout_variant: scene.layout_variant || 0,
+          photo_overlay: scene.photo_overlay || null,
+          text_effect: scene.text_effect || null,
+          font_name: scene.font_name || null,
+          font_size_scale: scene.font_size_scale || 1.0,
         }),
       });
       if (res.ok) {
@@ -901,9 +971,17 @@ export default function Home() {
                 <div key={i} className="bg-gray-800/60 border border-gray-700/50 rounded-lg p-3">
                   {/* 씬 헤더 */}
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-400">
-                      씬 {i + 1} · {getSceneTimeLabel(i, scenes.length)}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col gap-0.5">
+                        <button onClick={() => moveScene(i, "up")} disabled={i === 0}
+                          className="text-[10px] text-gray-600 hover:text-white disabled:opacity-20 leading-none">▲</button>
+                        <button onClick={() => moveScene(i, "down")} disabled={i === scenes.length - 1}
+                          className="text-[10px] text-gray-600 hover:text-white disabled:opacity-20 leading-none">▼</button>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        씬 {i + 1} · {getSceneTimeLabel(i, scenes.length)}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <select value={scene.scene_type} onChange={(e) => updateScene(i, "scene_type", e.target.value)}
                         className="bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
@@ -958,6 +1036,90 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+
+                  {/* 고급 설정 토글 */}
+                  <button
+                    onClick={() => setAdvancedOpen(prev => ({ ...prev, [i]: !prev[i] }))}
+                    className="w-full mt-2 pt-2 border-t border-gray-700/40 text-[11px] text-gray-500 hover:text-gray-300 transition flex items-center justify-center gap-1"
+                  >
+                    고급 설정 {advancedOpen[i] ? "▲" : "▼"}
+                  </button>
+
+                  {advancedOpen[i] && (
+                    <div className="mt-2 space-y-2 bg-gray-900/40 rounded-lg p-2.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* 레이아웃 변형 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">레이아웃 변형</span>
+                          <select value={scene.layout_variant} onChange={(e) => updateScene(i, "layout_variant", Number(e.target.value))}
+                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                            <option value={0}>기본</option>
+                            <option value={1}>변형 1</option>
+                            <option value={2}>변형 2</option>
+                          </select>
+                        </div>
+
+                        {/* 사진 배치 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
+                          <select value={scene.photo_mode} onChange={(e) => updateScene(i, "photo_mode", e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                            <option value="">자동</option>
+                            {photoModeOptions.map(o => (
+                              <option key={o.id} value={o.id}>{o.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* 오버레이 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
+                          <select value={scene.photo_overlay} onChange={(e) => updateScene(i, "photo_overlay", e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                            <option value="">자동</option>
+                            {overlayOptions.map(o => (
+                              <option key={o.id} value={o.id}>{o.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* 텍스트 효과 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
+                          <select value={scene.text_effect} onChange={(e) => updateScene(i, "text_effect", e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                            <option value="">자동</option>
+                            {effectOptions.map(o => (
+                              <option key={o.id} value={o.id}>{o.label}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* 폰트 선택 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">폰트</span>
+                          <select value={scene.font_name} onChange={(e) => updateScene(i, "font_name", e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                            <option value="">자동</option>
+                            {fontOptions.map(f => (
+                              <option key={f} value={f}>{f}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* 폰트 크기 */}
+                        <div>
+                          <span className="text-[10px] text-gray-600 block mb-0.5">
+                            폰트 크기 ({(scene.font_size_scale * 100).toFixed(0)}%)
+                          </span>
+                          <input type="range" min="50" max="200" step="10"
+                            value={scene.font_size_scale * 100}
+                            onChange={(e) => updateScene(i, "font_size_scale", Number(e.target.value) / 100)}
+                            className="w-full h-1.5 accent-blue-500" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1204,6 +1366,76 @@ export default function Home() {
                         <button onClick={() => updateScene(editingScene, "emphasis_color", "")}
                           className="text-[10px] text-gray-600 hover:text-white">초기화</button>
                       )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 고급 편집 옵션 */}
+                <div className="border-t border-gray-700/40 pt-3 space-y-2">
+                  <span className="text-xs text-gray-500 font-medium">고급 설정</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">레이아웃 변형</span>
+                      <select value={scenes[editingScene].layout_variant}
+                        onChange={(e) => updateScene(editingScene, "layout_variant", Number(e.target.value))}
+                        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+                        <option value={0}>기본</option>
+                        <option value={1}>변형 1</option>
+                        <option value={2}>변형 2</option>
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
+                      <select value={scenes[editingScene].photo_mode}
+                        onChange={(e) => updateScene(editingScene, "photo_mode", e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+                        <option value="">자동</option>
+                        {photoModeOptions.map(o => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
+                      <select value={scenes[editingScene].photo_overlay}
+                        onChange={(e) => updateScene(editingScene, "photo_overlay", e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+                        <option value="">자동</option>
+                        {overlayOptions.map(o => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
+                      <select value={scenes[editingScene].text_effect}
+                        onChange={(e) => updateScene(editingScene, "text_effect", e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+                        <option value="">자동</option>
+                        {effectOptions.map(o => (
+                          <option key={o.id} value={o.id}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">폰트</span>
+                      <select value={scenes[editingScene].font_name}
+                        onChange={(e) => updateScene(editingScene, "font_name", e.target.value)}
+                        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
+                        <option value="">자동</option>
+                        {fontOptions.map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-gray-600 block mb-0.5">
+                        폰트 크기 ({(scenes[editingScene].font_size_scale * 100).toFixed(0)}%)
+                      </span>
+                      <input type="range" min="50" max="200" step="10"
+                        value={scenes[editingScene].font_size_scale * 100}
+                        onChange={(e) => updateScene(editingScene, "font_size_scale", Number(e.target.value) / 100)}
+                        className="w-full h-1.5 accent-blue-500 mt-1" />
                     </div>
                   </div>
                 </div>

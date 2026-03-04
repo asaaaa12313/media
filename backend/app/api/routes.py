@@ -7,7 +7,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from PIL import Image
 
-from app.core.config import UPLOAD_DIR, OUTPUT_DIR, PROJECTS_DIR
+from app.core.config import UPLOAD_DIR, OUTPUT_DIR, PROJECTS_DIR, FONTS_DIR
 from app.tasks.task_manager import task_manager
 from app.tasks.video_tasks import process_focus_media
 from app.services.bgm_selector import list_genres
@@ -50,6 +50,12 @@ async def generate_full(
     scene_font_colors: str = Form(""),
     scene_emphasis_colors: str = Form(""),
     scene_text_positions: str = Form(""),
+    scene_layout_variants: str = Form(""),
+    scene_photo_modes: str = Form(""),
+    scene_photo_overlays: str = Form(""),
+    scene_text_effects: str = Form(""),
+    scene_font_names: str = Form(""),
+    scene_font_size_scales: str = Form(""),
     upload_dir_override: str = Form(""),
     files: list[UploadFile] = File(default=[]),
     logo: Optional[UploadFile] = File(None),
@@ -81,6 +87,12 @@ async def generate_full(
     font_colors = scene_font_colors.split("|") if scene_font_colors else []
     emphasis_colors = scene_emphasis_colors.split("|") if scene_emphasis_colors else []
     text_positions = scene_text_positions.split("|") if scene_text_positions else []
+    layout_variants = scene_layout_variants.split("|") if scene_layout_variants else []
+    photo_modes = scene_photo_modes.split("|") if scene_photo_modes else []
+    photo_overlays = scene_photo_overlays.split("|") if scene_photo_overlays else []
+    text_effects = scene_text_effects.split("|") if scene_text_effects else []
+    font_names = scene_font_names.split("|") if scene_font_names else []
+    font_size_scales = scene_font_size_scales.split("|") if scene_font_size_scales else []
 
     if scene_headlines:
         headlines = scene_headlines.split("|")
@@ -96,6 +108,12 @@ async def generate_full(
                 "font_color": font_colors[i].strip() if i < len(font_colors) else "",
                 "emphasis_color": emphasis_colors[i].strip() if i < len(emphasis_colors) else "",
                 "text_position": text_positions[i].strip() if i < len(text_positions) else "",
+                "layout_variant": int(layout_variants[i]) if i < len(layout_variants) and layout_variants[i].strip().isdigit() else 0,
+                "photo_mode": photo_modes[i].strip() if i < len(photo_modes) else "",
+                "photo_overlay": photo_overlays[i].strip() if i < len(photo_overlays) else "",
+                "text_effect": text_effects[i].strip() if i < len(text_effects) else "",
+                "font_name": font_names[i].strip() if i < len(font_names) else "",
+                "font_size_scale": float(font_size_scales[i]) if i < len(font_size_scales) and font_size_scales[i].strip() else 1.0,
             })
 
     services_list = [s.strip() for s in services.split(",") if s.strip()]
@@ -275,6 +293,16 @@ async def api_update_scene(project_id: str, scene_index: int,
         scene["font_color"] = update.font_color
     if update.emphasis_color is not None:
         scene["emphasis_color"] = update.emphasis_color
+    if update.layout_variant is not None:
+        scene["layout_variant"] = update.layout_variant
+    if update.photo_overlay is not None:
+        scene["photo_overlay"] = update.photo_overlay
+    if update.text_effect is not None:
+        scene["text_effect"] = update.text_effect
+    if update.font_name is not None:
+        scene["font_name"] = update.font_name
+    if update.font_size_scale is not None:
+        scene["font_size_scale"] = update.font_size_scale
 
     # 프리뷰 재생성
     frame_size = data.get("frame_size", DEFAULT_FRAME_SIZE)
@@ -311,6 +339,12 @@ async def api_update_scene(project_id: str, scene_index: int,
             font_color_override=scene.get("font_color", ""),
             emphasis_color=scene.get("emphasis_color", ""),
             emphasis_words=scene.get("emphasis_words", []),
+            layout_variant=scene.get("layout_variant", 0),
+            photo_mode_override=scene.get("photo_mode", ""),
+            photo_overlay_override=scene.get("photo_overlay", ""),
+            text_effect_override=scene.get("text_effect", ""),
+            font_name_override=scene.get("font_name", ""),
+            font_size_scale=scene.get("font_size_scale", 1.0),
         )
 
         logo_path = data.get("logo_path", "")
@@ -326,6 +360,7 @@ async def api_update_scene(project_id: str, scene_index: int,
             data["business"].get("phone", ""),
             data["business"].get("address", ""),
             logo_small, qr,
+            bar_style=template.get("bar_style", "classic"),
         )
         renderer.set_bottom_bar(bottom_bar)
 
@@ -376,6 +411,76 @@ async def api_regenerate_project(project_id: str):
 
     task_id = task_manager.submit(process_focus_media, options)
     return {"task_id": task_id, "project_id": project_id}
+
+
+# ─────────────────────────────────────────────
+# 옵션 조회 API
+# ─────────────────────────────────────────────
+
+@router.get("/api/options/fonts")
+async def api_list_fonts():
+    """사용 가능한 폰트 목록"""
+    fonts = []
+    if FONTS_DIR.exists():
+        for f in sorted(FONTS_DIR.iterdir()):
+            if f.suffix in (".otf", ".ttf"):
+                fonts.append({"id": f.name, "label": f.stem})
+    return {"fonts": fonts}
+
+
+@router.get("/api/options/effects")
+async def api_list_effects():
+    """사용 가능한 텍스트 효과 목록"""
+    return {"effects": [
+        {"id": "none", "label": "없음"},
+        {"id": "shadow", "label": "그림자"},
+        {"id": "outline", "label": "외곽선"},
+        {"id": "bg_box", "label": "배경 박스"},
+        {"id": "highlight", "label": "하이라이트"},
+        {"id": "glow", "label": "글로우"},
+        {"id": "shadow_3d", "label": "3D 그림자"},
+        {"id": "neon", "label": "네온"},
+        {"id": "double_outline", "label": "이중 외곽선"},
+        {"id": "underline_accent", "label": "밑줄 강조"},
+        {"id": "bg_pill", "label": "필 배경"},
+        {"id": "gradient_text", "label": "그라데이션"},
+    ]}
+
+
+@router.get("/api/options/overlays")
+async def api_list_overlays():
+    """사용 가능한 오버레이 목록"""
+    return {"overlays": [
+        {"id": "none", "label": "없음"},
+        {"id": "gradient_bottom", "label": "하단 그라데이션"},
+        {"id": "gradient_top_bottom", "label": "상하 그라데이션"},
+        {"id": "gradient_bottom_heavy", "label": "하단 강한 그라데이션"},
+        {"id": "dark_overlay", "label": "어두운 오버레이"},
+        {"id": "dark_heavy", "label": "매우 어두운"},
+        {"id": "light_overlay", "label": "밝은 오버레이"},
+        {"id": "color_gradient_bottom", "label": "컬러 하단 그라데이션"},
+        {"id": "color_gradient_top", "label": "컬러 상단 그라데이션"},
+        {"id": "color_overlay_light", "label": "컬러 반투명"},
+        {"id": "color_overlay_heavy", "label": "컬러 강한"},
+        {"id": "diagonal_gradient", "label": "대각선 그라데이션"},
+        {"id": "vignette", "label": "비네팅"},
+        {"id": "duotone", "label": "듀오톤"},
+    ]}
+
+
+@router.get("/api/options/photo-modes")
+async def api_list_photo_modes():
+    """사용 가능한 사진 배치 모드 목록"""
+    return {"photo_modes": [
+        {"id": "fullscreen", "label": "전체 화면"},
+        {"id": "top_half", "label": "상단 절반"},
+        {"id": "bottom_half", "label": "하단 절반"},
+        {"id": "grid_2x2", "label": "2x2 그리드"},
+        {"id": "left_half", "label": "좌측 절반"},
+        {"id": "right_half", "label": "우측 절반"},
+        {"id": "top_two_thirds", "label": "상단 2/3"},
+        {"id": "center_circle", "label": "원형 중앙"},
+    ]}
 
 
 def _load_project_photos(photos_dir: Path) -> list[Image.Image]:

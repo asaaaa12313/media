@@ -117,6 +117,141 @@ SCENE_LAYOUTS = {
     },
 }
 
+# 씬 레이아웃 변형 (각 씬 타입에 2~3가지 대안 레이아웃)
+SCENE_LAYOUT_VARIANTS = {
+    "intro": [
+        # 변형 1: 좌측 정렬 + 브랜드 컬러 그라데이션
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "color_gradient_bottom",
+            "text_slots": [
+                {"region": "top_left", "role": "brand_name", "font_role": "headline", "size": 40, "effect": "none"},
+                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 88, "effect": "shadow_3d"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 34, "effect": "underline_accent"},
+            ],
+        },
+        # 변형 2: 하단 집중 + 네온
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "gradient_bottom_heavy",
+            "text_slots": [
+                {"region": "top_right", "role": "brand_name", "font_role": "accent", "size": 36, "effect": "bg_pill"},
+                {"region": "bottom_wide", "role": "headline", "font_role": "display", "size": 80, "effect": "neon"},
+            ],
+        },
+    ],
+    "feature_list": [
+        # 변형 1: 좌우 분할
+        {
+            "photo_mode": "left_half",
+            "photo_overlay": "none",
+            "text_slots": [
+                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 64, "effect": "none"},
+                {"region": "bottom_wide", "role": "feature_list", "font_role": "body", "size": 28, "effect": "none"},
+            ],
+        },
+        # 변형 2: 상단 2/3 사진
+        {
+            "photo_mode": "top_two_thirds",
+            "photo_overlay": "gradient_bottom",
+            "text_slots": [
+                {"region": "top_center", "role": "headline", "font_role": "display", "size": 72, "effect": "outline"},
+                {"region": "bottom_wide", "role": "badge_grid", "font_role": "badge", "size": 22, "effect": "none"},
+            ],
+        },
+    ],
+    "promotion": [
+        # 변형 1: 좌우 분할
+        {
+            "photo_mode": "left_half",
+            "photo_overlay": "none",
+            "text_slots": [
+                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 72, "effect": "shadow_3d"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "accent", "size": 40, "effect": "highlight"},
+            ],
+        },
+        # 변형 2: 컬러 오버레이 + 이중 외곽선
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "color_overlay_heavy",
+            "text_slots": [
+                {"region": "top_center", "role": "accent", "font_role": "handwriting", "size": 44, "effect": "none"},
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 100, "effect": "double_outline"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 36, "effect": "bg_pill"},
+            ],
+        },
+    ],
+    "gallery": [
+        # 변형 1: 원형 마스크
+        {
+            "photo_mode": "center_circle",
+            "photo_overlay": "none",
+            "text_slots": [
+                {"region": "top_center", "role": "headline", "font_role": "headline", "size": 56, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "none"},
+            ],
+        },
+    ],
+    "cta": [
+        # 변형 1: 브랜드 컬러 그라데이션
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "color_gradient_bottom",
+            "text_slots": [
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 88, "effect": "double_outline"},
+                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 48, "effect": "bg_pill"},
+            ],
+        },
+        # 변형 2: 비네팅 + 네온
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "vignette",
+            "text_slots": [
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 80, "effect": "neon"},
+                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 44, "effect": "underline_accent"},
+            ],
+        },
+    ],
+    "info_card": [
+        # 변형 1: 우측 사진
+        {
+            "photo_mode": "right_half",
+            "photo_overlay": "none",
+            "bottom_template": False,
+            "text_slots": [
+                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 64, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "none"},
+            ],
+        },
+    ],
+    "highlight": [
+        # 변형 1: 대각선 그라데이션
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "diagonal_gradient",
+            "text_slots": [
+                {"region": "top_left", "role": "headline", "font_role": "display", "size": 76, "effect": "shadow_3d"},
+                {"region": "mid_left", "role": "subtext", "font_role": "body", "size": 32, "effect": "bg_box"},
+            ],
+        },
+    ],
+    "review": [
+        # 변형 1: 전체 화면 + 따옴표 장식
+        {
+            "photo_mode": "fullscreen",
+            "photo_overlay": "dark_overlay",
+            "text_slots": [
+                {"region": "mid_center", "role": "headline", "font_role": "handwriting", "size": 60, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "bg_box"},
+            ],
+            "decorations": [
+                {"type": "quote_marks", "x": 80, "y": 420, "color_key": "accent", "size": 80},
+                {"type": "star_rating", "x": 380, "y": 1100, "color_key": "accent", "rating": 5, "size": 36},
+            ],
+        },
+    ],
+}
+
 # 업종별 기본 씬 시퀀스 (확장 가능 - 최대 10씬 풀까지 정의)
 CATEGORY_SCENE_SEQUENCE = {
     "음식점":   ["intro", "gallery", "info_card", "promotion", "highlight", "feature_list", "review", "info_card", "promotion", "cta"],

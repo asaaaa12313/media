@@ -76,6 +76,12 @@ def _build_scene_layouts(
             font_color_override=scene.font_color,
             emphasis_color=scene.emphasis_color,
             emphasis_words=scene.emphasis_words,
+            layout_variant=getattr(scene, 'layout_variant', 0),
+            photo_mode_override=getattr(scene, 'photo_mode', ''),
+            photo_overlay_override=getattr(scene, 'photo_overlay', ''),
+            text_effect_override=getattr(scene, 'text_effect', ''),
+            font_name_override=getattr(scene, 'font_name', ''),
+            font_size_scale=getattr(scene, 'font_size_scale', 1.0),
         )
         layouts.append(layout)
 
@@ -114,6 +120,7 @@ def generate_all_frames(
     bottom_bar = render_bottom_bar(
         template, business.name, business.phone, business.address,
         logo_small, qr,
+        bar_style=template.get("bar_style", "classic"),
     )
     renderer.set_bottom_bar(bottom_bar)
 
@@ -225,6 +232,7 @@ def generate_mixed_video(
     bottom_bar = render_bottom_bar(
         template, business.name, business.phone, business.address,
         logo_small, qr,
+        bar_style=template.get("bar_style", "classic"),
     )
     renderer.set_bottom_bar(bottom_bar)
 
