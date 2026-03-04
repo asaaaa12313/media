@@ -11,6 +11,8 @@ class BusinessInfo(BaseModel):
     address: str = ""
     website: str = ""
     services: list[str] = []
+    operating_hours: str = ""
+    concept_note: str = ""
 
 
 class BrandConfig(BaseModel):

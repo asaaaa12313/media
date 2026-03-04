@@ -370,12 +370,33 @@ def hex_to_rgb(hex_str: str) -> tuple:
     return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
 
 
+def _relative_luminance(rgb: tuple) -> float:
+    """WCAG 2.0 상대 휘도 계산"""
+    vals = []
+    for c in rgb[:3]:
+        s = c / 255.0
+        vals.append(s / 12.92 if s <= 0.03928 else ((s + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * vals[0] + 0.7152 * vals[1] + 0.0722 * vals[2]
+
+
+def _auto_text_color(bg_rgb: tuple) -> tuple:
+    """배경색 밝기에 따라 텍스트 색상 자동 결정 (WCAG 기준)"""
+    lum = _relative_luminance(bg_rgb)
+    return (30, 30, 30) if lum > 0.4 else (255, 255, 255)
+
+
 def get_template(category: str, primary_override: str = "",
                  secondary_override: str = "") -> dict:
     """카테고리별 템플릿 반환. 사용자 컬러로 오버라이드 가능."""
     tpl = CATEGORY_TEMPLATES.get(category, CATEGORY_TEMPLATES["기타"]).copy()
     if primary_override:
-        tpl["primary"] = hex_to_rgb(primary_override)
+        new_primary = hex_to_rgb(primary_override)
+        tpl["primary"] = new_primary
+        # 밝기 기반 자동 텍스트 색상 조정
+        auto_text = _auto_text_color(new_primary)
+        tpl["text_on_primary"] = auto_text
+        tpl["badge_bg"] = new_primary
+        tpl["badge_text"] = auto_text
     if secondary_override:
         tpl["secondary"] = hex_to_rgb(secondary_override)
     return tpl

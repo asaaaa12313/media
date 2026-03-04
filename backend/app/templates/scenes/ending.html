@@ -12,7 +12,7 @@ body {
 
 /* 로고 + 브랜드 섹션 */
 .brand-hero {
-    padding: 50px 60px 30px;
+    padding: 30px 60px 16px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -43,6 +43,20 @@ body {
     background: var(--accent, #FF3B30);
     border-radius: 2px;
     margin: 20px auto;
+}
+
+/* CTA 영역 */
+.cta-section {
+    padding: 16px 50px 8px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.cta-text {
+    font-family: 'Gmarket';
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent, #FF3B30);
+    letter-spacing: -0.5px;
 }
 
 /* 서비스 리스트 */
@@ -86,7 +100,7 @@ body {
 
 /* 운영 정보 */
 .hours-section {
-    padding: 24px 50px;
+    padding: 16px 50px;
     flex: 1;
 }
 .hours-title {
@@ -163,6 +177,12 @@ body {
         {% if tagline %}<div class="tagline">{{ tagline }}</div>{% endif %}
         <div class="divider"></div>
     </div>
+
+    {% if cta_text %}
+    <div class="cta-section">
+        <div class="cta-text">{{ cta_text }}</div>
+    </div>
+    {% endif %}
 
     {% if services %}
     <div class="service-list">

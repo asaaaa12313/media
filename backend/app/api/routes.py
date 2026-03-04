@@ -38,6 +38,8 @@ async def generate_full(
     address: str = Form(""),
     website: str = Form(""),
     services: str = Form(""),
+    operating_hours: str = Form(""),
+    concept_note: str = Form(""),
     primary_color: str = Form(""),
     secondary_color: str = Form(""),
     bgm_genre: str = Form(""),
@@ -127,6 +129,8 @@ async def generate_full(
             "address": address,
             "website": website,
             "services": services_list,
+            "operating_hours": operating_hours,
+            "concept_note": concept_note,
         },
         "brand": {
             "primary_color": primary_color,

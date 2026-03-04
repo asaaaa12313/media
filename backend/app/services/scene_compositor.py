@@ -114,10 +114,10 @@ def _try_fullscreen_html_render(
             # promo 전용
             discount="",
             discount_label="",
-            cta_text="지금 바로 방문하세요" if scene_type == "cta" else "",
+            cta_text=scene.headline if scene_type == "cta" and scene.headline else "",
             naver_search=f"네이버에서 '{business.name}' 검색" if scene_type == "promotion" else "",
             # ending 전용
-            hours=[],
+            hours=_parse_hours(getattr(business, 'operating_hours', '')),
             # CSS 변수
             primary=_rgb_to_hex(template.get("primary", (50, 50, 50))),
             accent=_rgb_to_hex(template.get("accent", (255, 200, 50))),
@@ -134,6 +134,24 @@ def _try_fullscreen_html_render(
     except Exception as e:
         logger.warning(f"[fullscreen_html] {scene_type} 렌더링 실패: {e}")
         return None
+
+
+def _parse_hours(hours_str: str) -> list[dict]:
+    """운영시간 문자열을 파싱하여 [{day, time}] 리스트로 변환"""
+    if not hours_str:
+        return []
+    items = []
+    for part in hours_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        # "월~금 14:00-20:00" 형태 파싱
+        space_idx = part.find(" ")
+        if space_idx > 0:
+            items.append({"day": part[:space_idx], "time": part[space_idx+1:]})
+        else:
+            items.append({"day": "", "time": part})
+    return items
 
 
 def _get_scene_at_time(t: float, timings: list[tuple[float, float]] | None = None) -> int:

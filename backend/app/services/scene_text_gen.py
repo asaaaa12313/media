@@ -93,6 +93,8 @@ def _build_prompt(business: BusinessInfo, num_scenes: int) -> str:
     )
 
     services_text = ", ".join(business.services) if business.services else "없음"
+    hours_text = business.operating_hours if getattr(business, 'operating_hours', '') else "미정"
+    concept_text = business.concept_note if getattr(business, 'concept_note', '') else "없음"
 
     # 업종별 예시 가져오기
     examples = CATEGORY_EXAMPLES.get(business.category, CATEGORY_EXAMPLES["기타"])
@@ -108,7 +110,9 @@ def _build_prompt(business: BusinessInfo, num_scenes: int) -> str:
 업체명: {business.name}
 업종: {business.category}
 태그라인: {business.tagline or "없음"}
-주요 서비스: {services_text}
+홍보문구/서비스: {services_text}
+운영시간: {hours_text}
+컨셉/분위기: {concept_text}
 
 [톤 & 무드]
 {tone}

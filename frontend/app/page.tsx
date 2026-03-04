@@ -125,6 +125,8 @@ export default function Home() {
   const [website, setWebsite] = useState("");
   const [services, setServices] = useState<string[]>([]);
   const [serviceInput, setServiceInput] = useState("");
+  const [operatingHours, setOperatingHours] = useState("");
+  const [conceptNote, setConceptNote] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
 
   // Media
@@ -158,7 +160,7 @@ export default function Home() {
   const [uploadDir, setUploadDir] = useState("");
 
   // Options (API에서 로드)
-  const [fontOptions, setFontOptions] = useState<string[]>([]);
+  const [fontOptions, setFontOptions] = useState<OptionItem[]>([]);
   const [effectOptions, setEffectOptions] = useState<OptionItem[]>([]);
   const [overlayOptions, setOverlayOptions] = useState<OptionItem[]>([]);
   const [photoModeOptions, setPhotoModeOptions] = useState<OptionItem[]>([]);
@@ -377,6 +379,8 @@ export default function Home() {
     formData.append("address", address);
     formData.append("website", website);
     formData.append("services", services.join(","));
+    formData.append("operating_hours", operatingHours);
+    formData.append("concept_note", conceptNote);
     formData.append("primary_color", primaryColor);
     formData.append("frame_size", frameSize);
     formData.append("num_scenes", String(scenes.length));
@@ -832,13 +836,13 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">서비스 태그 (최대 8개)</label>
+                <label className="block text-xs text-gray-500 mb-1">홍보문구 (최대 8개)</label>
                 <div className="flex gap-2 mb-2">
                   <input type="text" value={serviceInput}
                     onChange={(e) => setServiceInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addService())}
                     className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                    placeholder="태그 입력 후 Enter" />
+                    placeholder="홍보문구 입력 후 Enter" />
                   <button onClick={addService}
                     className="px-4 py-2 bg-gray-700 rounded text-sm hover:bg-gray-600 transition">
                     추가
@@ -854,6 +858,22 @@ export default function Home() {
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">운영시간</label>
+                <input type="text" value={operatingHours}
+                  onChange={(e) => setOperatingHours(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="예: 월~금 14:00-20:00, 토 10:00-14:00" />
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">컨셉 노트 (선택)</label>
+                <input type="text" value={conceptNote}
+                  onChange={(e) => setConceptNote(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="예: 고급스럽고 트렌디한 느낌" />
               </div>
 
               <div>
@@ -1127,7 +1147,7 @@ export default function Home() {
                             className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                             <option value="">자동</option>
                             {fontOptions.map(f => (
-                              <option key={f} value={f}>{f}</option>
+                              <option key={f.id} value={f.id}>{f.label}</option>
                             ))}
                           </select>
                         </div>
@@ -1449,7 +1469,7 @@ export default function Home() {
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
                         <option value="">자동</option>
                         {fontOptions.map(f => (
-                          <option key={f} value={f}>{f}</option>
+                          <option key={f.id} value={f.id}>{f.label}</option>
                         ))}
                       </select>
                     </div>
