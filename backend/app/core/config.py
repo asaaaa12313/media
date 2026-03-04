@@ -36,13 +36,13 @@ ZONE3_HEIGHT = BOTTOM_BAR_HEIGHT
 
 # 텍스트 배치 7개 영역 (콘텐츠 영역 내 좌표)
 TEXT_REGIONS = {
-    "top_left":     {"x": 60,  "y": 60,   "w": 460, "h": 280, "align": "left"},
-    "top_center":   {"x": 100, "y": 60,   "w": 880, "h": 280, "align": "center"},
-    "top_right":    {"x": 560, "y": 60,   "w": 460, "h": 280, "align": "right"},
-    "mid_left":     {"x": 60,  "y": 500,  "w": 460, "h": 500, "align": "left"},
-    "mid_center":   {"x": 100, "y": 500,  "w": 880, "h": 500, "align": "center"},
-    "mid_right":    {"x": 560, "y": 500,  "w": 460, "h": 500, "align": "right"},
-    "bottom_wide":  {"x": 60,  "y": 1200, "w": 960, "h": 400, "align": "center"},
+    "top_left":     {"x": 60,  "y": 40,   "w": 500, "h": 350, "align": "left"},
+    "top_center":   {"x": 80,  "y": 40,   "w": 920, "h": 350, "align": "center"},
+    "top_right":    {"x": 520, "y": 40,   "w": 500, "h": 350, "align": "right"},
+    "mid_left":     {"x": 60,  "y": 420,  "w": 500, "h": 600, "align": "left"},
+    "mid_center":   {"x": 80,  "y": 420,  "w": 920, "h": 600, "align": "center"},
+    "mid_right":    {"x": 520, "y": 420,  "w": 500, "h": 600, "align": "right"},
+    "bottom_wide":  {"x": 60,  "y": 1100, "w": 960, "h": 500, "align": "center"},
 }
 
 # 씬 타입별 기본 레이아웃
@@ -51,17 +51,17 @@ SCENE_LAYOUTS = {
         "photo_mode": "fullscreen",
         "photo_overlay": "gradient_top_bottom",
         "text_slots": [
-            {"region": "top_left", "role": "brand_name", "font_role": "headline", "size": 44, "effect": "shadow"},
-            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 96, "effect": "outline"},
-            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 36, "effect": "bg_box"},
+            {"region": "top_left", "role": "brand_name", "font_role": "headline", "size": 52, "effect": "shadow"},
+            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 120, "effect": "outline"},
+            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 48, "effect": "bg_box"},
         ],
     },
     "feature_list": {
-        "photo_mode": "top_half",
-        "photo_overlay": "gradient_bottom",
+        "photo_mode": "fullscreen",
+        "photo_overlay": "gradient_bottom_heavy",
         "text_slots": [
-            {"region": "top_center", "role": "headline", "font_role": "display", "size": 80, "effect": "outline"},
-            {"region": "mid_left", "role": "feature_list", "font_role": "body", "size": 32, "effect": "none"},
+            {"region": "top_center", "role": "headline", "font_role": "display", "size": 100, "effect": "outline"},
+            {"region": "mid_left", "role": "feature_list", "font_role": "body", "size": 40, "effect": "none"},
             {"region": "bottom_wide", "role": "badge_grid", "font_role": "badge", "size": 24, "effect": "none"},
         ],
     },
@@ -70,49 +70,49 @@ SCENE_LAYOUTS = {
         "photo_overlay": "dark_heavy",
         "text_slots": [
             {"region": "top_center", "role": "accent", "font_role": "handwriting", "size": 44, "effect": "none"},
-            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 110, "effect": "outline"},
-            {"region": "bottom_wide", "role": "subtext", "font_role": "accent", "size": 40, "effect": "highlight"},
+            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 130, "effect": "outline"},
+            {"region": "bottom_wide", "role": "subtext", "font_role": "accent", "size": 52, "effect": "highlight"},
         ],
     },
     "gallery": {
-        "photo_mode": "grid_2x2",
+        "photo_mode": "fullscreen",
         "photo_overlay": "light_overlay",
         "text_slots": [
-            {"region": "top_center", "role": "headline", "font_role": "headline", "size": 64, "effect": "bg_box"},
+            {"region": "top_center", "role": "headline", "font_role": "headline", "size": 88, "effect": "bg_box"},
         ],
     },
     "cta": {
         "photo_mode": "fullscreen",
         "photo_overlay": "gradient_bottom_heavy",
         "text_slots": [
-            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 88, "effect": "outline"},
-            {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 48, "effect": "bg_box"},
+            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 110, "effect": "outline"},
+            {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 60, "effect": "bg_box"},
         ],
     },
     "info_card": {
-        "photo_mode": "top_half",
-        "photo_overlay": "gradient_bottom",
+        "photo_mode": "fullscreen",
+        "photo_overlay": "gradient_bottom_heavy",
         "bottom_template": True,
         "text_slots": [
-            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 72, "effect": "none"},
-            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 32, "effect": "none"},
+            {"region": "mid_center", "role": "headline", "font_role": "display", "size": 92, "effect": "none"},
+            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 42, "effect": "none"},
         ],
     },
     "highlight": {
         "photo_mode": "fullscreen",
         "photo_overlay": "dark_overlay",
         "text_slots": [
-            {"region": "top_center", "role": "headline", "font_role": "display", "size": 80, "effect": "outline"},
-            {"region": "mid_center", "role": "subtext", "font_role": "body", "size": 36, "effect": "bg_box"},
+            {"region": "top_center", "role": "headline", "font_role": "display", "size": 100, "effect": "outline"},
+            {"region": "mid_center", "role": "subtext", "font_role": "body", "size": 46, "effect": "bg_box"},
         ],
     },
     "review": {
-        "photo_mode": "top_half",
-        "photo_overlay": "light_overlay",
+        "photo_mode": "fullscreen",
+        "photo_overlay": "dark_overlay",
         "bottom_template": True,
         "text_slots": [
-            {"region": "mid_center", "role": "headline", "font_role": "handwriting", "size": 64, "effect": "none"},
-            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "none"},
+            {"region": "mid_center", "role": "headline", "font_role": "handwriting", "size": 84, "effect": "none"},
+            {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 38, "effect": "none"},
         ],
     },
 }
@@ -125,9 +125,9 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "color_gradient_bottom",
             "text_slots": [
-                {"region": "top_left", "role": "brand_name", "font_role": "headline", "size": 40, "effect": "none"},
-                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 88, "effect": "shadow_3d"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 34, "effect": "underline_accent"},
+                {"region": "top_left", "role": "brand_name", "font_role": "headline", "size": 50, "effect": "none"},
+                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 110, "effect": "shadow_3d"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 42, "effect": "underline_accent"},
             ],
         },
         # 변형 2: 하단 집중 + 네온
@@ -135,8 +135,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "gradient_bottom_heavy",
             "text_slots": [
-                {"region": "top_right", "role": "brand_name", "font_role": "accent", "size": 36, "effect": "bg_pill"},
-                {"region": "bottom_wide", "role": "headline", "font_role": "display", "size": 80, "effect": "neon"},
+                {"region": "top_right", "role": "brand_name", "font_role": "accent", "size": 45, "effect": "bg_pill"},
+                {"region": "bottom_wide", "role": "headline", "font_role": "display", "size": 100, "effect": "neon"},
             ],
         },
     ],
@@ -146,8 +146,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "left_half",
             "photo_overlay": "none",
             "text_slots": [
-                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 64, "effect": "none"},
-                {"region": "bottom_wide", "role": "feature_list", "font_role": "body", "size": 28, "effect": "none"},
+                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 80, "effect": "none"},
+                {"region": "bottom_wide", "role": "feature_list", "font_role": "body", "size": 35, "effect": "none"},
             ],
         },
         # 변형 2: 상단 2/3 사진
@@ -155,8 +155,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "top_two_thirds",
             "photo_overlay": "gradient_bottom",
             "text_slots": [
-                {"region": "top_center", "role": "headline", "font_role": "display", "size": 72, "effect": "outline"},
-                {"region": "bottom_wide", "role": "badge_grid", "font_role": "badge", "size": 22, "effect": "none"},
+                {"region": "top_center", "role": "headline", "font_role": "display", "size": 90, "effect": "outline"},
+                {"region": "bottom_wide", "role": "badge_grid", "font_role": "badge", "size": 28, "effect": "none"},
             ],
         },
     ],
@@ -166,8 +166,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "left_half",
             "photo_overlay": "none",
             "text_slots": [
-                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 72, "effect": "shadow_3d"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "accent", "size": 40, "effect": "highlight"},
+                {"region": "mid_right", "role": "headline", "font_role": "display", "size": 90, "effect": "shadow_3d"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "accent", "size": 50, "effect": "highlight"},
             ],
         },
         # 변형 2: 컬러 오버레이 + 이중 외곽선
@@ -175,9 +175,9 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "color_overlay_heavy",
             "text_slots": [
-                {"region": "top_center", "role": "accent", "font_role": "handwriting", "size": 44, "effect": "none"},
-                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 100, "effect": "double_outline"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 36, "effect": "bg_pill"},
+                {"region": "top_center", "role": "accent", "font_role": "handwriting", "size": 55, "effect": "none"},
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 125, "effect": "double_outline"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 45, "effect": "bg_pill"},
             ],
         },
     ],
@@ -187,8 +187,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "center_circle",
             "photo_overlay": "none",
             "text_slots": [
-                {"region": "top_center", "role": "headline", "font_role": "headline", "size": 56, "effect": "none"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "none"},
+                {"region": "top_center", "role": "headline", "font_role": "headline", "size": 70, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 35, "effect": "none"},
             ],
         },
     ],
@@ -198,8 +198,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "color_gradient_bottom",
             "text_slots": [
-                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 88, "effect": "double_outline"},
-                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 48, "effect": "bg_pill"},
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 110, "effect": "double_outline"},
+                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 60, "effect": "bg_pill"},
             ],
         },
         # 변형 2: 비네팅 + 네온
@@ -207,8 +207,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "vignette",
             "text_slots": [
-                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 80, "effect": "neon"},
-                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 44, "effect": "underline_accent"},
+                {"region": "mid_center", "role": "headline", "font_role": "display", "size": 100, "effect": "neon"},
+                {"region": "bottom_wide", "role": "cta_text", "font_role": "headline", "size": 55, "effect": "underline_accent"},
             ],
         },
     ],
@@ -219,8 +219,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_overlay": "none",
             "bottom_template": False,
             "text_slots": [
-                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 64, "effect": "none"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "none"},
+                {"region": "mid_left", "role": "headline", "font_role": "display", "size": 80, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 35, "effect": "none"},
             ],
         },
     ],
@@ -230,8 +230,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "diagonal_gradient",
             "text_slots": [
-                {"region": "top_left", "role": "headline", "font_role": "display", "size": 76, "effect": "shadow_3d"},
-                {"region": "mid_left", "role": "subtext", "font_role": "body", "size": 32, "effect": "bg_box"},
+                {"region": "top_left", "role": "headline", "font_role": "display", "size": 95, "effect": "shadow_3d"},
+                {"region": "mid_left", "role": "subtext", "font_role": "body", "size": 40, "effect": "bg_box"},
             ],
         },
     ],
@@ -241,8 +241,8 @@ SCENE_LAYOUT_VARIANTS = {
             "photo_mode": "fullscreen",
             "photo_overlay": "dark_overlay",
             "text_slots": [
-                {"region": "mid_center", "role": "headline", "font_role": "handwriting", "size": 60, "effect": "none"},
-                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 28, "effect": "bg_box"},
+                {"region": "mid_center", "role": "headline", "font_role": "handwriting", "size": 75, "effect": "none"},
+                {"region": "bottom_wide", "role": "subtext", "font_role": "body", "size": 35, "effect": "bg_box"},
             ],
             "decorations": [
                 {"type": "quote_marks", "x": 80, "y": 420, "color_key": "accent", "size": 80},

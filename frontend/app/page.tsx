@@ -473,6 +473,9 @@ export default function Home() {
   };
 
   const enterEditMode = () => {
+    if (scenes.length === 0 && projectId) {
+      loadPreviews(projectId);
+    }
     setEditMode(true);
     setEditingScene(null);
   };
@@ -1297,7 +1300,7 @@ export default function Home() {
             </div>
 
             {/* 선택된 씬 편집 패널 */}
-            {editingScene !== null && (
+            {editingScene !== null && editingScene < scenes.length && (
               <div className="bg-gray-800/60 border border-blue-500/30 rounded-lg p-4 space-y-3">
                 <h3 className="text-sm font-medium text-blue-400">
                   씬 {editingScene + 1} 편집 · {getSceneTimeLabel(editingScene, scenes.length)}

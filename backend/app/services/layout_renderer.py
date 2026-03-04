@@ -116,7 +116,7 @@ class LayoutRenderer:
         self.fonts = template["fonts"]
         self.spec = FRAME_SIZES.get(frame_size, FRAME_SIZES[DEFAULT_FRAME_SIZE])
         self.regions = _scale_regions(self.spec)
-        self._font_scale = self.spec.content_height / _BASE_CONTENT_HEIGHT
+        self._font_scale = max(0.95, self.spec.content_height / _BASE_CONTENT_HEIGHT)
         self._bottom_bar_cache: Image.Image | None = None
 
     def set_bottom_bar(self, bar: Image.Image):
