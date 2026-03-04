@@ -14,8 +14,6 @@ import shutil
 import subprocess
 from pathlib import Path
 from PIL import Image
-from jinja2 import Environment, FileSystemLoader
-
 logger = logging.getLogger(__name__)
 
 from app.core.config import (
@@ -33,7 +31,15 @@ from app.services.qr_generator import generate_qr
 from app.services.image_processor import center_crop_resize
 from app.models.schemas import BusinessInfo, BrandConfig, SceneConfig
 
-_jinja_env = Environment(loader=FileSystemLoader("app/templates"))
+_jinja_env = None
+
+def _get_jinja_env():
+    """Jinja2 환경 lazy 초기화"""
+    global _jinja_env
+    if _jinja_env is None:
+        from jinja2 import Environment, FileSystemLoader
+        _jinja_env = Environment(loader=FileSystemLoader("app/templates"))
+    return _jinja_env
 
 # 씬 타입 → HTML 템플릿 매핑
 _SCENE_HTML_MAP = {
@@ -80,7 +86,7 @@ def _try_fullscreen_html_render(
     try:
         from app.services.html_renderer import render_html_sync
 
-        tmpl = _jinja_env.get_template(tmpl_path)
+        tmpl = _get_jinja_env().get_template(tmpl_path)
 
         # 사진을 base64로 변환
         photo_b64 = ""
