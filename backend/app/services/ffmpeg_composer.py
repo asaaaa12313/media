@@ -31,15 +31,17 @@ def compose_from_frames(frames_dir: str, bgm_path: str,
     else:
         cmd.extend(["-map", "0:v"])
 
-    cmd.extend([
-        "-c:v", "libx264", "-preset", "fast", "-crf", "20",
-        "-c:a", "aac", "-b:a", "128k",
+    codec_opts = ["-c:v", "libx264", "-preset", "fast", "-crf", "20"]
+    if bgm_path:
+        codec_opts.extend(["-c:a", "aac", "-b:a", "128k"])
+    codec_opts.extend([
         "-r", str(FPS),
         "-t", str(duration),
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         output_path,
     ])
+    cmd.extend(codec_opts)
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
     if result.returncode != 0:
@@ -72,9 +74,10 @@ def compose_from_video(video_path: str, bgm_path: str,
     else:
         cmd.extend(["-map", "0:v"])
 
-    cmd.extend([
-        "-c:v", "libx264", "-preset", "fast", "-crf", "20",
-        "-c:a", "aac", "-b:a", "128k",
+    codec_opts = ["-c:v", "libx264", "-preset", "fast", "-crf", "20"]
+    if bgm_path:
+        codec_opts.extend(["-c:a", "aac", "-b:a", "128k"])
+    codec_opts.extend([
         "-r", str(FPS),
         "-t", str(duration),
         "-pix_fmt", "yuv420p",

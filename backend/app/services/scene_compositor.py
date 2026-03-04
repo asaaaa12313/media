@@ -137,25 +137,49 @@ def generate_all_frames(
             # 프리뷰 저장
             frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
 
-    # 프레임 시퀀스 생성 (크로스페이드 포함)
+    # 씬별 정적 프레임을 파일로 저장 (메모리 해제용)
+    scene_frame_paths: dict[int, str] = {}
+    for idx, frame in scene_frames.items():
+        p = frames_dir / f"scene_base_{idx}.jpg"
+        frame.save(p, quality=90)
+        scene_frame_paths[idx] = str(p)
+    # 메모리 해제 — 이후 필요 시 디스크에서 읽음
+    scene_frames.clear()
+
+    # 프레임 시퀀스 생성 (정적 구간은 복사, 전환 구간만 blend)
+    import os
+    prev_scene_idx = -1
+    prev_path = None
+
     for fn in range(total_frames):
         t = fn / FPS
+        out_path = frames_dir / f"{fn:05d}.jpg"
         trans = _get_transition(t, timings)
 
         if trans:
             idx_a, idx_b, progress = trans
-            fa = scene_frames.get(idx_a)
-            fb = scene_frames.get(idx_b)
-            if fa and fb:
+            pa = scene_frame_paths.get(idx_a)
+            pb = scene_frame_paths.get(idx_b)
+            if pa and pb:
+                fa = Image.open(pa)
+                fb = Image.open(pb)
                 blended = Image.blend(fa, fb, progress)
-                blended.save(frames_dir / f"{fn:05d}.jpg", quality=90)
+                blended.save(out_path, quality=90)
+                fa.close()
+                fb.close()
+                blended.close()
             else:
-                (fb or fa).save(frames_dir / f"{fn:05d}.jpg", quality=90)
+                src = pb or pa
+                if src:
+                    os.link(src, out_path)
         else:
             idx = _get_scene_at_time(t, timings)
-            frame = scene_frames.get(idx)
-            if frame:
-                frame.save(frames_dir / f"{fn:05d}.jpg", quality=90)
+            src = scene_frame_paths.get(idx)
+            if src:
+                if idx != prev_scene_idx or prev_path is None:
+                    prev_scene_idx = idx
+                    prev_path = src
+                os.link(src, out_path)
 
         if progress_cb and fn % FPS == 0:
             progress_cb(fn / total_frames)
