@@ -15,6 +15,18 @@
 @font-face { font-family: 'BlackHanSans'; src: url('file:///app/fonts/BlackHanSans-Regular.ttf'); }
 @font-face { font-family: 'GasoekOne'; src: url('file:///app/fonts/Gasoek-One.ttf'); }
 @font-face { font-family: 'Dongle'; src: url('file:///app/fonts/Dongle-Bold.ttf'); }
+@font-face { font-family: 'NanumGothic'; src: url('file:///app/fonts/NanumGothicExtraBold.ttf'); font-weight: 800; }
+@font-face { font-family: 'NanumMyeongjo'; src: url('file:///app/fonts/NanumMyeongjoBold.ttf'); font-weight: 700; }
+@font-face { font-family: 'NanumPen'; src: url('file:///app/fonts/NanumPen.ttf'); }
+@font-face { font-family: 'NanumBrush'; src: url('file:///app/fonts/NanumBrush.ttf'); }
+@font-face { font-family: 'GothicA1'; src: url('file:///app/fonts/GothicA1-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'IBMPlexSansKR'; src: url('file:///app/fonts/IBMPlexSansKR-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'CuteFont'; src: url('file:///app/fonts/CuteFont-Regular.ttf'); }
+@font-face { font-family: 'Gugi'; src: url('file:///app/fonts/Gugi-Regular.ttf'); }
+@font-face { font-family: 'SongMyung'; src: url('file:///app/fonts/SongMyung-Regular.ttf'); }
+@font-face { font-family: 'Sunflower'; src: url('file:///app/fonts/Sunflower-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'Gaegu'; src: url('file:///app/fonts/Gaegu-Bold.ttf'); font-weight: 700; }
+@font-face { font-family: 'SingleDay'; src: url('file:///app/fonts/SingleDay-Regular.ttf'); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
