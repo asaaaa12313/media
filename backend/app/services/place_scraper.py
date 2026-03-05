@@ -135,10 +135,19 @@ def _extract_info_from_apollo(apollo: dict, place_id: str) -> dict:
     result["tagline"] = (detail.get("description") or detail.get("microReview") or
                          detail.get("introduction") or detail.get("bizsummary") or "")
 
-    # 서비스/편의시설
+    # 서비스/키워드 (시설 태그 제외)
+    FACILITY_EXCLUDES = {
+        "예약", "무선인터넷", "간편결제", "주차", "포장", "배달",
+        "남/녀 화장실 구분", "화장실 구분", "WIFI", "Wi-Fi", "wifi",
+        "무선 인터넷", "유아의자", "놀이방", "단체 이용 가능",
+        "남녀 화장실 구분", "장애인 편의시설",
+    }
     conveniences = detail.get("conveniences", [])
     if isinstance(conveniences, list):
-        result["services"] = [c for c in conveniences if isinstance(c, str)]
+        result["services"] = [
+            c for c in conveniences
+            if isinstance(c, str) and c not in FACILITY_EXCLUDES
+        ]
 
     # 영업시간 파싱
     business_hours = detail.get("businessHours") or detail.get("newBusinessHours") or detail.get("operationHours")

@@ -265,6 +265,26 @@ def generate_scene_timings(num_scenes: int, total_duration: float = 15.0) -> lis
     return [(round(i * duration_per_scene, 2), round((i + 1) * duration_per_scene, 2))
             for i in range(num_scenes)]
 
+# 씬 전환 효과 (FFmpeg xfade)
+CATEGORY_TRANSITIONS = {
+    "음식점": "fade",
+    "헬스": "wipeleft",
+    "뷰티": "dissolve",
+    "학원": "fade",
+    "병원": "fade",
+    "안경": "slideright",
+    "부동산": "fade",
+    "골프": "dissolve",
+    "핸드폰": "wipeleft",
+    "동물병원": "fade",
+    "미용실": "dissolve",
+    "기타": "fade",
+}
+
+
+def get_transition_type(category: str) -> str:
+    return CATEGORY_TRANSITIONS.get(category, "fade")
+
 # BGM
 BGM_VOLUME = 0.45
 BGM_FADE_IN = 0.2

@@ -37,6 +37,19 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
             brand.secondary_color,
         )
 
+        # 팔레트 색상이 있으면 template에 오버라이드
+        palette = brand.color_palette if hasattr(brand, 'color_palette') and brand.color_palette else []
+        if not palette:
+            palette = options.get("brand", {}).get("color_palette", [])
+        if palette and len(palette) >= 2:
+            def _hex_to_rgb(h: str) -> tuple:
+                h = h.lstrip("#")
+                return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+            template["primary"] = _hex_to_rgb(palette[0])
+            template["accent"] = _hex_to_rgb(palette[1])
+            if len(palette) >= 3:
+                template["secondary"] = _hex_to_rgb(palette[2])
+
         # 3. 사진 로드
         update_fn("photos", 15)
         upload_dir = Path(options.get("upload_dir", ""))
@@ -69,16 +82,36 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
             if photos:
                 s.media_index = min(s.media_index, len(photos) - 1)
 
-        # 5. 영상 생성 (씬별 클립 → concat 방식 통일)
+        # 5. 영상 생성
         update_fn("rendering", 30)
         frame_size = options.get("frame_size", "1080x1650")
+        use_clip_pipeline = True  # 새 파이프라인 (CSS 애니메이션 영상 녹화)
 
-        combined_path = scene_compositor.generate_mixed_video(
-            job_dir, business, brand, scenes, photos,
-            video_paths, template, logo_path,
-            frame_size=frame_size,
-            progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
-        )
+        combined_path = None
+        if use_clip_pipeline and not video_paths:
+            # 새 파이프라인: HTML + CSS animation → Playwright 영상 녹화 → xfade
+            try:
+                combined_path = scene_compositor.generate_video_clips(
+                    job_dir, business, brand, scenes, photos,
+                    template, logo_path,
+                    frame_size=frame_size,
+                    progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
+                )
+                logger.info("[pipeline] 클립 기반 파이프라인 성공")
+            except Exception as e:
+                logger.warning(f"[pipeline] 클립 기반 파이프라인 실패, 레거시로 폴백: {e}")
+                # 사진 재로드 (generate_video_clips에서 close됨)
+                photos = _load_photos(upload_dir)
+                combined_path = None
+
+        if combined_path is None:
+            # 레거시 파이프라인: HTML → PNG 스크린샷 → 프레임 시퀀스
+            combined_path = scene_compositor.generate_mixed_video(
+                job_dir, business, brand, scenes, photos,
+                video_paths, template, logo_path,
+                frame_size=frame_size,
+                progress_cb=lambda p: update_fn("rendering", 30 + int(p * 50)),
+            )
 
         # 6. BGM: genre 지정 없으면 업종 기반 자동
         update_fn("bgm", 82)

@@ -144,6 +144,19 @@ body {
     height: 1px;
     background: linear-gradient(to right, rgba(255,255,255,0.08), transparent);
 }
+
+{% if animation %}
+/* ─── 씬 애니메이션 ─── */
+.brand-header { animation: fadeIn 0.3s ease-out both; }
+.service-tags { animation: fadeIn 0.4s ease-out 0.2s both; }
+.discount-card { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both; }
+.promo-headline { animation: fadeInUp 0.6s ease-out 0.5s both; }
+.promo-sub { animation: fadeIn 0.5s ease-out 0.8s both; }
+.promo-divider { animation: fadeIn 0.3s ease-out 0.9s both; }
+.cta-button { animation: fadeInUp 0.5s ease-out 1.0s both; }
+.naver-area { animation: fadeIn 0.4s ease-out 1.2s both; }
+.bottom-bar { animation: fadeInUp 0.4s ease-out 1.3s both; }
+{% endif %}
 </style>
 </head>
 <body>

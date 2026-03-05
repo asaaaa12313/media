@@ -104,19 +104,120 @@ def _color_score(rgb: tuple) -> float:
 
 
 def extract_colors_from_category(category: str) -> list[str]:
-    """업종에 맞는 기본 추천 색상 팔레트"""
+    """업종에 맞는 기본 추천 색상 팔레트 (5색)"""
     CATEGORY_PALETTES = {
-        "음식점": ["#DC3232", "#FF8C00", "#8B4513"],
-        "헬스": ["#1E1E1E", "#DC3232", "#FFD700"],
-        "뷰티": ["#C8AA8C", "#D4618C", "#8B6B8B"],
-        "학원": ["#329650", "#2C5F8A", "#FF8C00"],
-        "병원": ["#4A90D9", "#2C5F8A", "#FFFFFF"],
-        "안경": ["#E68220", "#2C3E6B", "#333333"],
-        "부동산": ["#2C3E6B", "#1A3A5C", "#C9A96E"],
-        "골프": ["#1A5C2A", "#2E7D32", "#FFFFFF"],
-        "핸드폰": ["#0066CC", "#333333", "#FF3B30"],
-        "동물병원": ["#4AADE8", "#FF8C5A", "#2E7D32"],
-        "미용실": ["#D4618C", "#8B6B8B", "#333333"],
-        "기타": ["#4A4A4A", "#2C5F8A", "#FF8C00"],
+        "음식점": ["#DC3232", "#FF8C00", "#8B4513", "#FFD700", "#2C1810"],
+        "헬스": ["#1E1E1E", "#DC3232", "#FFD700", "#333333", "#FF4444"],
+        "뷰티": ["#C8AA8C", "#D4618C", "#8B6B8B", "#F5E6DA", "#A0526B"],
+        "학원": ["#329650", "#2C5F8A", "#FF8C00", "#1A3D5C", "#FFB347"],
+        "병원": ["#4A90D9", "#2C5F8A", "#5CB8E6", "#1A3A5C", "#87CEEB"],
+        "안경": ["#E68220", "#2C3E6B", "#333333", "#F5A623", "#1A2744"],
+        "부동산": ["#2C3E6B", "#1A3A5C", "#C9A96E", "#4A6B8A", "#8B7D4A"],
+        "골프": ["#1A5C2A", "#2E7D32", "#4CAF50", "#0D3318", "#81C784"],
+        "핸드폰": ["#0066CC", "#333333", "#FF3B30", "#004499", "#FF6B60"],
+        "동물병원": ["#4AADE8", "#FF8C5A", "#2E7D32", "#2888C4", "#FFB088"],
+        "미용실": ["#D4618C", "#8B6B8B", "#333333", "#F08CB4", "#5C4A5C"],
+        "기타": ["#4A4A4A", "#2C5F8A", "#FF8C00", "#666666", "#1A3D5C"],
     }
     return CATEGORY_PALETTES.get(category, CATEGORY_PALETTES["기타"])
+
+
+# --- 색상 팔레트 생성 (coolors.co 스타일) ---
+
+def _hex_to_hsl(hex_color: str) -> tuple[float, float, float]:
+    """Hex → HSL (h: 0-360, s: 0-1, l: 0-1)"""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = int(hex_color[0:2], 16) / 255, int(hex_color[2:4], 16) / 255, int(hex_color[4:6], 16) / 255
+    max_c, min_c = max(r, g, b), min(r, g, b)
+    l = (max_c + min_c) / 2
+
+    if max_c == min_c:
+        h = s = 0.0
+    else:
+        d = max_c - min_c
+        s = d / (2 - max_c - min_c) if l > 0.5 else d / (max_c + min_c)
+        if max_c == r:
+            h = ((g - b) / d + (6 if g < b else 0)) / 6
+        elif max_c == g:
+            h = ((b - r) / d + 2) / 6
+        else:
+            h = ((r - g) / d + 4) / 6
+
+    return h * 360, s, l
+
+
+def _hsl_to_hex(h: float, s: float, l: float) -> str:
+    """HSL → Hex"""
+    h = h % 360
+    s = max(0, min(1, s))
+    l = max(0, min(1, l))
+
+    if s == 0:
+        v = int(l * 255)
+        return f"#{v:02x}{v:02x}{v:02x}"
+
+    def hue_to_rgb(p, q, t):
+        if t < 0: t += 1
+        if t > 1: t -= 1
+        if t < 1/6: return p + (q - p) * 6 * t
+        if t < 1/2: return q
+        if t < 2/3: return p + (q - p) * (2/3 - t) * 6
+        return p
+
+    q = l * (1 + s) if l < 0.5 else l + s - l * s
+    p = 2 * l - q
+    h_norm = h / 360
+
+    r = int(hue_to_rgb(p, q, h_norm + 1/3) * 255)
+    g = int(hue_to_rgb(p, q, h_norm) * 255)
+    b = int(hue_to_rgb(p, q, h_norm - 1/3) * 255)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def generate_palette(base_hex: str, mode: str = "analogous") -> list[str]:
+    """베이스 컬러에서 5색 조화 팔레트 생성
+
+    mode: analogous | complementary | triadic | split | monochrome
+    """
+    h, s, l = _hex_to_hsl(base_hex)
+
+    if mode == "complementary":
+        return [
+            base_hex,
+            _hsl_to_hex(h, s * 0.6, min(l + 0.2, 0.85)),
+            _hsl_to_hex((h + 180) % 360, s, l),
+            _hsl_to_hex((h + 180) % 360, s * 0.6, min(l + 0.15, 0.8)),
+            _hsl_to_hex(h, s * 0.8, max(l - 0.2, 0.15)),
+        ]
+    elif mode == "triadic":
+        return [
+            base_hex,
+            _hsl_to_hex((h + 120) % 360, s * 0.85, l),
+            _hsl_to_hex((h + 240) % 360, s * 0.85, l),
+            _hsl_to_hex(h, s * 0.5, min(l + 0.2, 0.85)),
+            _hsl_to_hex((h + 120) % 360, s * 0.5, max(l - 0.15, 0.2)),
+        ]
+    elif mode == "split":
+        return [
+            base_hex,
+            _hsl_to_hex((h + 150) % 360, s * 0.85, l),
+            _hsl_to_hex((h + 210) % 360, s * 0.85, l),
+            _hsl_to_hex(h, s * 0.6, min(l + 0.2, 0.85)),
+            _hsl_to_hex(h, s * 0.8, max(l - 0.2, 0.15)),
+        ]
+    elif mode == "monochrome":
+        return [
+            base_hex,
+            _hsl_to_hex(h, s * 0.7, min(l + 0.25, 0.9)),
+            _hsl_to_hex(h, s * 0.85, min(l + 0.12, 0.8)),
+            _hsl_to_hex(h, min(s * 1.2, 1.0), max(l - 0.15, 0.15)),
+            _hsl_to_hex(h, min(s * 1.1, 1.0), max(l - 0.3, 0.1)),
+        ]
+    else:  # analogous (기본)
+        return [
+            base_hex,
+            _hsl_to_hex((h + 30) % 360, s * 0.9, l),
+            _hsl_to_hex((h - 30) % 360, s * 0.9, l),
+            _hsl_to_hex((h + 15) % 360, s * 0.6, min(l + 0.2, 0.85)),
+            _hsl_to_hex(h, min(s * 1.2, 1.0), max(l - 0.2, 0.15)),
+        ]

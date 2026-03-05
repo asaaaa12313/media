@@ -1,10 +1,10 @@
-"""씬 전환 + 프레임 시퀀스 생성 (핵심 파이프라인)
+"""씬 전환 + 프레임 시퀀스 / 클립 기반 영상 생성 (핵심 파이프라인)
 
 멀티 해상도 지원: 1080x1650(기본), 1080x1920, 1080x2560
 
-풀스크린 HTML 렌더링 (우선) → Pillow fallback
-사진 전용 씬: HTML/Pillow로 정적 프레임 생성
-영상 포함 씬: FFmpeg로 클립 구간 추출 + 오버레이
+2가지 파이프라인:
+1. 레거시: HTML → PNG 스크린샷 → Pillow blend → JPG 프레임 시퀀스 (프리뷰/폴백)
+2. 신규: HTML + CSS animation → Playwright 영상 녹화 → MP4 클립 → FFmpeg xfade (최종 영상)
 """
 from __future__ import annotations
 import base64
@@ -20,6 +20,7 @@ from app.core.config import (
     FPS, TARGET_DURATION,
     SCENE_TIMINGS, TRANSITION_DURATION,
     generate_scene_timings, get_scene_sequence,
+    get_transition_type,
 )
 from app.services.layout_renderer import (
     LayoutRenderer, SceneLayout, build_scene_layout, render_text_overlay_png,
@@ -134,6 +135,7 @@ def _try_fullscreen_html_render(
             # CSS 변수
             primary=_rgb_to_hex(template.get("primary", (50, 50, 50))),
             accent=_rgb_to_hex(template.get("accent", (255, 200, 50))),
+            secondary=_rgb_to_hex(template.get("secondary", template.get("accent", (255, 200, 50)))),
             text_color=_rgb_to_hex(template.get("text_on_content", (255, 255, 255))),
             panel_bg=_rgb_to_hex(template.get("panel_bg", (255, 255, 255))),
             text_on_primary=_rgb_to_hex(template.get("text_on_primary", (255, 255, 255))),
@@ -146,6 +148,84 @@ def _try_fullscreen_html_render(
         return None
     except Exception as e:
         logger.warning(f"[fullscreen_html] {scene_type} 렌더링 실패: {e}")
+        return None
+
+
+def _try_fullscreen_html_video(
+    scene: SceneConfig,
+    scene_type: str,
+    business: BusinessInfo,
+    template: dict,
+    logo: Image.Image | None,
+    qr: Image.Image | None,
+    width: int,
+    height: int,
+    duration: float = 3.0,
+    output_path: str = "",
+) -> str | None:
+    """씬을 CSS 애니메이션 포함 MP4로 렌더링. 실패 시 None."""
+    tmpl_path = _SCENE_HTML_MAP.get(scene_type)
+    if not tmpl_path:
+        return None
+
+    try:
+        from app.services.html_renderer import render_html_to_video_sync
+
+        tmpl = _get_jinja_env().get_template(tmpl_path)
+
+        services = business.services[:6] if business.services else []
+
+        # CTA 텍스트 결정 + 중복 방지
+        if scene_type == "cta":
+            _cta = scene.headline if scene.headline else "지금 바로 방문하세요"
+            if _cta.strip() == business.name.strip():
+                _cta = "지금 바로 방문하세요"
+        else:
+            _cta = ""
+
+        _sub = scene.subtext or business.tagline or ""
+        if _sub.strip() == business.name.strip():
+            _sub = ""
+        if scene_type == "cta" and _sub.strip() == _cta.strip():
+            _sub = ""
+
+        html = tmpl.render(
+            width=width, height=height,
+            business_name=business.name,
+            tagline=business.tagline,
+            tagline_sub=business.tagline or "",
+            headline=scene.headline or business.name,
+            sub_copy=_sub,
+            highlight=scene.subtext if scene_type in ("highlight", "review") else "",
+            photo_base64="",
+            logo_base64=_img_to_base64(logo),
+            qr_base64=_img_to_base64(qr),
+            phone=business.phone,
+            address=business.address,
+            services=services,
+            extra_tags=[],
+            discount="",
+            discount_label="",
+            cta_text=_cta,
+            naver_search=f"네이버에서 '{business.name}' 검색" if scene_type == "promotion" else "",
+            hours=_parse_hours(getattr(business, 'operating_hours', '')),
+            primary=_rgb_to_hex(template.get("primary", (50, 50, 50))),
+            accent=_rgb_to_hex(template.get("accent", (255, 200, 50))),
+            secondary=_rgb_to_hex(template.get("secondary", template.get("accent", (255, 200, 50)))),
+            text_color=_rgb_to_hex(template.get("text_on_content", (255, 255, 255))),
+            panel_bg=_rgb_to_hex(template.get("panel_bg", (255, 255, 255))),
+            text_on_primary=_rgb_to_hex(template.get("text_on_primary", (255, 255, 255))),
+            # 애니메이션 활성화
+            animation=True,
+        )
+
+        result = render_html_to_video_sync(html, width, height, duration, output_path)
+        if result:
+            logger.info(f"[fullscreen_html_video] {scene_type} → {tmpl_path} 영상 녹화 성공 ({duration}s)")
+            return result
+        return None
+    except Exception as e:
+        logger.warning(f"[fullscreen_html_video] {scene_type} 영상 녹화 실패: {e}")
         return None
 
 
@@ -620,3 +700,112 @@ def _save_video_preview(video_path: str, output_path: Path):
         str(output_path),
     ]
     subprocess.run(cmd, capture_output=True, timeout=30)
+
+
+# ─────────────────────────────────────────────
+# 클립 기반 영상 생성 (신규 파이프라인)
+# ─────────────────────────────────────────────
+
+def generate_video_clips(
+    job_dir: Path,
+    business: BusinessInfo,
+    brand: BrandConfig,
+    scenes: list[SceneConfig],
+    photos: list[Image.Image],
+    template: dict,
+    logo_path: str = "",
+    frame_size: str = DEFAULT_FRAME_SIZE,
+    progress_cb=None,
+) -> str:
+    """각 씬을 CSS 애니메이션 포함 MP4 클립으로 렌더링 후 xfade 전환으로 합성
+
+    신규 파이프라인: HTML+CSS animation → Playwright 영상 녹화 → xfade concat
+    실패 시 레거시 프레임 시퀀스 파이프라인으로 폴백.
+
+    Returns: 합성된 무음 영상 경로
+    """
+    from app.services.ffmpeg_composer import xfade_concat
+
+    spec = FRAME_SIZES.get(frame_size, FRAME_SIZES[DEFAULT_FRAME_SIZE])
+    W, H = spec.width, spec.height
+
+    clips_dir = job_dir / "clips"
+    clips_dir.mkdir(exist_ok=True, parents=True)
+    previews_dir = job_dir / "previews"
+    previews_dir.mkdir(exist_ok=True)
+
+    # 로고/QR
+    logo_small = load_logo_small(logo_path) if logo_path else None
+    qr = generate_qr(business.website)
+
+    # 타이밍 계산
+    default_sequence = get_scene_sequence(business.category, len(scenes))
+    timings = generate_scene_timings(len(scenes))
+    transition_dur = TRANSITION_DURATION
+
+    clip_paths = []
+    clip_durations = []
+
+    for i, scene in enumerate(scenes):
+        start, end = timings[i] if i < len(timings) else (0, 3)
+        duration = end - start
+        scene_type = scene.scene_type or (default_sequence[i] if i < len(default_sequence) else "cta")
+        clip_path = str(clips_dir / f"scene_{i}.mp4")
+
+        # CSS 애니메이션 포함 MP4 클립 생성
+        result = _try_fullscreen_html_video(
+            scene, scene_type, business, template,
+            logo_small, qr, W, H,
+            duration=duration,
+            output_path=clip_path,
+        )
+
+        if result:
+            clip_paths.append(result)
+            clip_durations.append(duration)
+            # 프리뷰 이미지 추출 (마지막 프레임 대신 중간 지점)
+            _save_video_preview(result, previews_dir / f"scene_{i}.jpg")
+            logger.info(f"[generate_video_clips] scene_{i} ({scene_type}): 영상 녹화 성공 ({duration:.1f}s)")
+        else:
+            # 폴백: 정적 이미지 → 클립 변환
+            logger.warning(f"[generate_video_clips] scene_{i} ({scene_type}): 영상 녹화 실패, 정적 폴백")
+            photo_idx = min(scene.media_index, max(0, len(photos) - 1))
+            photo = photos[photo_idx] if photo_idx < len(photos) else (photos[0] if photos else None)
+
+            frame = _try_fullscreen_html_render(
+                scene, scene_type, photo, business, template,
+                logo_small, qr, W, H,
+            )
+            if frame:
+                still_path = str(clips_dir / f"still_{i}.png")
+                frame.save(still_path)
+                frame.save(previews_dir / f"scene_{i}.jpg", quality=85)
+                frame.close()
+                _ffmpeg_still_to_clip(still_path, clip_path, W, H, duration, FPS)
+                clip_paths.append(clip_path)
+                clip_durations.append(duration)
+
+        if progress_cb:
+            progress_cb((i + 1) / len(scenes) * 0.8)
+
+    # 메모리 해제
+    if logo_small:
+        logo_small.close()
+    for p in photos:
+        p.close()
+    photos.clear()
+    import gc; gc.collect()
+
+    if not clip_paths:
+        raise RuntimeError("영상 클립 생성 실패: 모든 씬 렌더링 실패")
+
+    # 업종별 전환 효과로 xfade 합성
+    transition_type = get_transition_type(business.category)
+    output_path = str(job_dir / "combined.mp4")
+    xfade_concat(clip_paths, clip_durations, output_path, transition_dur, transition_type)
+
+    if progress_cb:
+        progress_cb(1.0)
+
+    logger.info(f"[generate_video_clips] {len(clip_paths)} 클립 → {output_path}")
+    return output_path

@@ -19,6 +19,7 @@ class BrandConfig(BaseModel):
     primary_color: str = ""
     secondary_color: str = ""
     text_color: str = "#FFFFFF"
+    color_palette: list[str] = []
 
 
 class TextBlockConfig(BaseModel):

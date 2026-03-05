@@ -125,6 +125,8 @@ export default function Home() {
   const [conceptNote, setConceptNote] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
   const [suggestedColors, setSuggestedColors] = useState<string[]>([]);
+  const [colorPalette, setColorPalette] = useState<string[]>([]);
+  const [paletteMode, setPaletteMode] = useState("analogous");
 
   // Media
   const [files, setFiles] = useState<File[]>([]);
@@ -232,13 +234,19 @@ export default function Home() {
         setAutoPhotos(data.photo_urls);
         setPhotoMode("auto");
       }
-      // 브랜드 컬러 자동 추출 (백그라운드)
+      // 브랜드 컬러 자동 추출 + 팔레트 생성 (백그라운드)
       const cat = data.category || category;
       fetch(`${API}/api/extract-colors`, {
         method: "POST",
         body: (() => { const fd = new FormData(); fd.append("category", cat); return fd; })(),
       }).then(r => r.json()).then(d => {
-        if (d.colors?.length) setSuggestedColors(d.colors);
+        if (d.colors?.length) {
+          setSuggestedColors(d.colors);
+          // 첫 번째 색상으로 팔레트 자동 생성
+          if (!colorPalette.length) {
+            fetchPalette(d.colors[0]);
+          }
+        }
       }).catch(() => {});
       setPlaceLoading(false);
       setStep(2);
@@ -267,6 +275,23 @@ export default function Home() {
       // fallback
     }
     return "";
+  };
+
+  const fetchPalette = async (baseColor: string, mode?: string) => {
+    try {
+      const fd = new FormData();
+      fd.append("base_color", baseColor);
+      fd.append("mode", mode || paletteMode);
+      const res = await fetch(`${API}/api/generate-palette`, { method: "POST", body: fd });
+      const d = await res.json();
+      if (d.palette?.length) setColorPalette(d.palette);
+    } catch { /* ignore */ }
+  };
+
+  const updatePaletteColor = (idx: number, color: string) => {
+    const updated = [...colorPalette];
+    updated[idx] = color;
+    setColorPalette(updated);
   };
 
   const addService = () => {
@@ -388,7 +413,8 @@ export default function Home() {
     formData.append("services", services.join(","));
     formData.append("operating_hours", operatingHours);
     formData.append("concept_note", conceptNote);
-    formData.append("primary_color", primaryColor);
+    formData.append("primary_color", colorPalette[0] || primaryColor);
+    formData.append("color_palette", colorPalette.join(","));
     formData.append("frame_size", frameSize);
     formData.append("num_scenes", String(scenes.length));
     formData.append("bgm_genre", bgmMode === "auto" ? "" : bgmGenre);
@@ -600,6 +626,9 @@ export default function Home() {
     setResultFile("");
     setGenerating(false);
     setUploadDir("");
+    setColorPalette([]);
+    setPaletteMode("analogous");
+    setSuggestedColors([]);
     setAiError("");
     setEditMode(false);
     setProjectId("");
@@ -636,7 +665,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#0f0f0f] text-white">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-1">포커스미디어 영상 생성기</h1>
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-gray-400 text-sm mb-6">
           1080x1650 · 15초 · 엘리베이터/빌딩 스크린 광고
         </p>
 
@@ -651,7 +680,7 @@ export default function Home() {
                     ? "bg-blue-600 text-white"
                     : step > i + 1
                     ? "bg-blue-900/60 text-blue-300"
-                    : "bg-gray-800/60 text-gray-600"
+                    : "bg-gray-800/60 text-gray-400"
                 }`}
               >
                 {label}
@@ -706,7 +735,7 @@ export default function Home() {
                     <p className="text-red-400 text-xs mt-2">{placeError}</p>
                   )}
                 </div>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray-400">
                   URL을 넣으면 업체명, 전화번호, 주소, 사진이 자동으로
                   입력됩니다
                 </p>
@@ -773,7 +802,7 @@ export default function Home() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">업종</label>
+                <label className="block text-xs text-gray-400 mb-1">업종</label>
                 <div className="flex flex-wrap gap-1.5">
                   {CATEGORIES.map((c) => (
                     <button
@@ -782,7 +811,7 @@ export default function Home() {
                       className={`px-2.5 py-1 rounded text-xs transition ${
                         category === c.id
                           ? "bg-blue-600 text-white"
-                          : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                          : "bg-gray-800 text-gray-400 hover:text-gray-300"
                       }`}
                     >
                       {c.icon} {c.label}
@@ -792,14 +821,14 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">업체명 *</label>
+                <label className="block text-xs text-gray-400 mb-1">업체명 *</label>
                 <input type="text" value={businessName} onChange={(e) => setBusinessName(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   placeholder="업체명을 입력하세요" />
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">태그라인/슬로건</label>
+                <label className="block text-xs text-gray-400 mb-1">태그라인/슬로건</label>
                 <input type="text" value={tagline} onChange={(e) => setTagline(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   placeholder="프리미엄 휘트니스 센터" />
@@ -807,13 +836,13 @@ export default function Home() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">전화번호</label>
+                  <label className="block text-xs text-gray-400 mb-1">전화번호</label>
                   <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="02-1234-5678" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">웹사이트 (QR)</label>
+                  <label className="block text-xs text-gray-400 mb-1">웹사이트 (QR)</label>
                   <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     placeholder="https://..." />
@@ -821,14 +850,14 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">주소</label>
+                <label className="block text-xs text-gray-400 mb-1">주소</label>
                 <input type="text" value={address} onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                   placeholder="서울시 강남구 역삼동 123-45" />
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">홍보문구 (최대 8개)</label>
+                <label className="block text-xs text-gray-400 mb-1">홍보문구 (최대 8개)</label>
                 <div className="flex gap-2 mb-2">
                   <input type="text" value={serviceInput}
                     onChange={(e) => setServiceInput(e.target.value)}
@@ -845,7 +874,7 @@ export default function Home() {
                     {services.map((s, i) => (
                       <span key={i} className="px-2.5 py-1 bg-blue-900/40 border border-blue-800/30 rounded-full text-xs flex items-center gap-1">
                         {s}
-                        <button onClick={() => removeService(i)} className="text-gray-500 hover:text-red-400 ml-0.5">x</button>
+                        <button onClick={() => removeService(i)} className="text-gray-400 hover:text-red-400 ml-0.5">x</button>
                       </span>
                     ))}
                   </div>
@@ -853,7 +882,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">운영시간</label>
+                <label className="block text-xs text-gray-400 mb-1">운영시간</label>
                 <input type="text" value={operatingHours}
                   onChange={(e) => setOperatingHours(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -861,7 +890,7 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">컨셉 노트 (선택)</label>
+                <label className="block text-xs text-gray-400 mb-1">컨셉 노트 (선택)</label>
                 <input type="text" value={conceptNote}
                   onChange={(e) => setConceptNote(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
@@ -869,22 +898,30 @@ export default function Home() {
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">브랜드 컬러 (선택)</label>
-                <div className="flex items-center gap-2">
+                <label className="block text-xs text-gray-400 mb-1">브랜드 컬러 팔레트</label>
+
+                {/* 메인 컬러 선택 */}
+                <div className="flex items-center gap-2 mb-3">
                   <input type="color"
                     value={primaryColor || CATEGORIES.find((c) => c.id === category)?.color || "#4A4A4A"}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    onChange={(e) => {
+                      setPrimaryColor(e.target.value);
+                      fetchPalette(e.target.value);
+                    }}
                     className="w-10 h-8 rounded cursor-pointer border border-gray-700" />
-                  <span className="text-xs text-gray-600">미선택 시 업종 기본 컬러</span>
+                  <span className="text-xs text-gray-400">메인 컬러 선택</span>
                   {primaryColor && (
-                    <button onClick={() => setPrimaryColor("")} className="text-xs text-gray-500 hover:text-white">초기화</button>
+                    <button onClick={() => { setPrimaryColor(""); setColorPalette([]); }}
+                      className="text-xs text-gray-400 hover:text-white">초기화</button>
                   )}
                 </div>
+
+                {/* 업종 추천 컬러 */}
                 {suggestedColors.length > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] text-gray-600">추천</span>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] text-gray-400">추천</span>
                     {suggestedColors.map((c, i) => (
-                      <button key={i} onClick={() => setPrimaryColor(c)}
+                      <button key={i} onClick={() => { setPrimaryColor(c); fetchPalette(c); }}
                         className={`w-7 h-7 rounded-full border-2 transition hover:scale-110 ${
                           primaryColor === c ? "border-white" : "border-gray-600"
                         }`}
@@ -892,6 +929,59 @@ export default function Home() {
                         title={c} />
                     ))}
                   </div>
+                )}
+
+                {/* 팔레트 모드 선택 */}
+                <div className="flex gap-1 mb-2">
+                  {[
+                    { id: "analogous", label: "유사색" },
+                    { id: "complementary", label: "보색" },
+                    { id: "triadic", label: "삼색" },
+                    { id: "split", label: "분할보색" },
+                    { id: "monochrome", label: "단색조" },
+                  ].map((m) => (
+                    <button key={m.id}
+                      onClick={() => {
+                        setPaletteMode(m.id);
+                        const base = primaryColor || CATEGORIES.find((c) => c.id === category)?.color || "#4A4A4A";
+                        fetchPalette(base, m.id);
+                      }}
+                      className={`px-2.5 py-1 rounded text-[11px] font-medium transition ${
+                        paletteMode === m.id
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-800 text-gray-400 hover:text-white"
+                      }`}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 5색 팔레트 스트립 (coolors 스타일) */}
+                {colorPalette.length > 0 && (
+                  <div className="rounded-xl overflow-hidden border border-gray-700 mb-2">
+                    <div className="flex h-16">
+                      {colorPalette.map((c, i) => (
+                        <label key={i} className="flex-1 relative cursor-pointer group" style={{ backgroundColor: c }}>
+                          <input type="color" value={c}
+                            onChange={(e) => updatePaletteColor(i, e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/60 text-white">
+                              {c.toUpperCase()}
+                            </span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex bg-gray-900/80">
+                      {["메인", "악센트", "보조1", "보조2", "강조"].slice(0, colorPalette.length).map((label, i) => (
+                        <div key={i} className="flex-1 text-center text-[9px] text-gray-400 py-1">{label}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {!colorPalette.length && (
+                  <p className="text-[10px] text-gray-400">메인 컬러를 선택하면 조화로운 5색 팔레트가 자동 생성됩니다</p>
                 )}
               </div>
             </div>
@@ -917,7 +1007,7 @@ export default function Home() {
 
             {photoMode === "auto" && autoPhotos.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">플레이스에서 수집된 사진 ({autoPhotos.length}장)</p>
+                <p className="text-xs text-gray-400 mb-2">플레이스에서 수집된 사진 ({autoPhotos.length}장)</p>
                 <div className="grid grid-cols-3 gap-2">
                   {autoPhotos.map((url, i) => (
                     <div key={i} className="aspect-square bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
@@ -931,7 +1021,7 @@ export default function Home() {
 
             {photoMode === "auto" && autoPhotos.length === 0 && (
               <div className="bg-gray-800/50 rounded-lg p-6 text-center mb-4">
-                <p className="text-gray-500 text-sm mb-2">자동 수집된 사진이 없습니다</p>
+                <p className="text-gray-400 text-sm mb-2">자동 수집된 사진이 없습니다</p>
                 <button onClick={() => setPhotoMode("upload")} className="text-blue-400 text-sm hover:text-blue-300">직접 업로드하기</button>
               </div>
             )}
@@ -941,7 +1031,7 @@ export default function Home() {
                 <div className="border-2 border-dashed border-gray-700 rounded-lg p-6 text-center hover:border-gray-500 transition cursor-pointer">
                   <input type="file" accept="image/*,video/*" multiple onChange={handleFileChange} className="hidden" id="file-upload" />
                   <label htmlFor="file-upload" className="cursor-pointer">
-                    <div className="text-gray-500 text-sm">
+                    <div className="text-gray-400 text-sm">
                       {files.length > 0 ? `${files.length}개 파일 선택됨` : "클릭하여 사진/영상 선택 (4~10개 권장)"}
                     </div>
                   </label>
@@ -961,7 +1051,7 @@ export default function Home() {
             <div className="pt-2 border-t border-gray-800">
               <label className="block text-sm text-gray-400 mb-2">로고 이미지 (선택)</label>
               <div className="flex items-center gap-3">
-                <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-gray-500" />
+                <input type="file" accept="image/*" onChange={handleLogoChange} className="text-sm text-gray-400" />
                 {logo && <span className="text-xs text-green-400">{logo.name}</span>}
               </div>
             </div>
@@ -981,7 +1071,7 @@ export default function Home() {
 
             {/* 프레임 사이즈 */}
             <div className="mb-5">
-              <label className="block text-xs text-gray-500 mb-2">프레임 사이즈</label>
+              <label className="block text-xs text-gray-400 mb-2">프레임 사이즈</label>
               <div className="flex gap-2">
                 {FRAME_SIZES.map((fs) => (
                   <button key={fs.id} onClick={() => setFrameSize(fs.id)}
@@ -1002,7 +1092,7 @@ export default function Home() {
                 {aiLoading ? "생성 중..." : "AI 텍스트 자동 생성"}
               </button>
               <div className="flex items-center gap-1 ml-auto">
-                <span className="text-xs text-gray-500">씬 수</span>
+                <span className="text-xs text-gray-400">씬 수</span>
                 <button onClick={removeScene.bind(null, scenes.length - 1)} disabled={scenes.length <= MIN_SCENES}
                   className="w-7 h-7 rounded bg-gray-800 text-gray-400 text-sm hover:bg-gray-700 disabled:opacity-30 transition">-</button>
                 <span className="text-sm font-medium w-6 text-center">{scenes.length}</span>
@@ -1020,17 +1110,17 @@ export default function Home() {
               <span className="text-xs text-gray-400">효과</span>
               <button onClick={() => setEffectMode("auto")}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  effectMode === "auto" ? "bg-green-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                  effectMode === "auto" ? "bg-green-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-300"
                 }`}>
                 자동 적용
               </button>
               <button onClick={() => setEffectMode("manual")}
                 className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  effectMode === "manual" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                  effectMode === "manual" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-300"
                 }`}>
                 개별 선택
               </button>
-              <span className="text-[10px] text-gray-600 ml-1">
+              <span className="text-[10px] text-gray-400 ml-1">
                 {effectMode === "auto" ? "업종에 맞는 효과가 자동 적용됩니다" : "각 씬별로 효과를 직접 선택합니다"}
               </span>
             </div>
@@ -1044,9 +1134,9 @@ export default function Home() {
                     <div className="flex items-center gap-1.5">
                       <div className="flex flex-col gap-0.5">
                         <button onClick={() => moveScene(i, "up")} disabled={i === 0}
-                          className="text-[10px] text-gray-600 hover:text-white disabled:opacity-20 leading-none">▲</button>
+                          className="text-[10px] text-gray-400 hover:text-white disabled:opacity-20 leading-none">▲</button>
                         <button onClick={() => moveScene(i, "down")} disabled={i === scenes.length - 1}
-                          className="text-[10px] text-gray-600 hover:text-white disabled:opacity-20 leading-none">▼</button>
+                          className="text-[10px] text-gray-400 hover:text-white disabled:opacity-20 leading-none">▼</button>
                       </div>
                       <span className="text-xs text-gray-400">
                         씬 {i + 1} · {getSceneTimeLabel(i, scenes.length)}
@@ -1066,7 +1156,7 @@ export default function Home() {
                         ))}
                       </select>
                       {scenes.length > MIN_SCENES && (
-                        <button onClick={() => removeScene(i)} className="text-gray-600 hover:text-red-400 text-xs">삭제</button>
+                        <button onClick={() => removeScene(i)} className="text-gray-400 hover:text-red-400 text-xs">삭제</button>
                       )}
                     </div>
                   </div>
@@ -1087,21 +1177,21 @@ export default function Home() {
                     </div>
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-600">폰트 색상</span>
+                        <span className="text-[10px] text-gray-400">폰트 색상</span>
                         <input type="color" value={scene.font_color || "#FFFFFF"}
                           onChange={(e) => updateScene(i, "font_color", e.target.value)}
                           className="w-6 h-5 rounded cursor-pointer border border-gray-700" />
                         {scene.font_color && (
-                          <button onClick={() => updateScene(i, "font_color", "")} className="text-[10px] text-gray-600 hover:text-white">초기화</button>
+                          <button onClick={() => updateScene(i, "font_color", "")} className="text-[10px] text-gray-400 hover:text-white">초기화</button>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-600">강조 색상</span>
+                        <span className="text-[10px] text-gray-400">강조 색상</span>
                         <input type="color" value={scene.emphasis_color || primaryColor || CATEGORIES.find((c) => c.id === category)?.color || "#FF5050"}
                           onChange={(e) => updateScene(i, "emphasis_color", e.target.value)}
                           className="w-6 h-5 rounded cursor-pointer border border-gray-700" />
                         {scene.emphasis_color && (
-                          <button onClick={() => updateScene(i, "emphasis_color", "")} className="text-[10px] text-gray-600 hover:text-white">초기화</button>
+                          <button onClick={() => updateScene(i, "emphasis_color", "")} className="text-[10px] text-gray-400 hover:text-white">초기화</button>
                         )}
                       </div>
                     </div>
@@ -1110,7 +1200,7 @@ export default function Home() {
                   {/* 고급 설정 토글 */}
                   <button
                     onClick={() => setAdvancedOpen(prev => ({ ...prev, [i]: !prev[i] }))}
-                    className="w-full mt-2 pt-2 border-t border-gray-700/40 text-[11px] text-gray-500 hover:text-gray-300 transition flex items-center justify-center gap-1"
+                    className="w-full mt-2 pt-2 border-t border-gray-700/40 text-[11px] text-gray-400 hover:text-gray-300 transition flex items-center justify-center gap-1"
                   >
                     고급 설정 {advancedOpen[i] ? "▲" : "▼"}
                   </button>
@@ -1120,7 +1210,7 @@ export default function Home() {
                       <div className="grid grid-cols-2 gap-2">
                         {/* 레이아웃 변형 */}
                         <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">레이아웃 변형</span>
+                          <span className="text-[10px] text-gray-400 block mb-0.5">레이아웃 변형</span>
                           <select value={scene.layout_variant} onChange={(e) => updateScene(i, "layout_variant", Number(e.target.value))}
                             className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                             <option value={0}>기본</option>
@@ -1133,7 +1223,7 @@ export default function Home() {
                           <>
                             {/* 사진 배치 */}
                             <div>
-                              <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
+                              <span className="text-[10px] text-gray-400 block mb-0.5">사진 배치</span>
                               <select value={scene.photo_mode} onChange={(e) => updateScene(i, "photo_mode", e.target.value)}
                                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                                 <option value="">자동</option>
@@ -1145,7 +1235,7 @@ export default function Home() {
 
                             {/* 오버레이 */}
                             <div>
-                              <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
+                              <span className="text-[10px] text-gray-400 block mb-0.5">오버레이</span>
                               <select value={scene.photo_overlay} onChange={(e) => updateScene(i, "photo_overlay", e.target.value)}
                                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                                 <option value="">자동</option>
@@ -1157,7 +1247,7 @@ export default function Home() {
 
                             {/* 텍스트 효과 */}
                             <div>
-                              <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
+                              <span className="text-[10px] text-gray-400 block mb-0.5">텍스트 효과</span>
                               <select value={scene.text_effect} onChange={(e) => updateScene(i, "text_effect", e.target.value)}
                                 className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                                 <option value="">자동</option>
@@ -1171,7 +1261,7 @@ export default function Home() {
 
                         {/* 폰트 선택 */}
                         <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">폰트</span>
+                          <span className="text-[10px] text-gray-400 block mb-0.5">폰트</span>
                           <select value={scene.font_name} onChange={(e) => updateScene(i, "font_name", e.target.value)}
                             className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
                             <option value="">자동</option>
@@ -1183,7 +1273,7 @@ export default function Home() {
 
                         {/* 폰트 크기 */}
                         <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">
+                          <span className="text-[10px] text-gray-400 block mb-0.5">
                             폰트 크기 ({(scene.font_size_scale * 100).toFixed(0)}%)
                           </span>
                           <input type="range" min="50" max="200" step="10"
@@ -1200,17 +1290,17 @@ export default function Home() {
 
             {/* BGM */}
             <div className="mb-6">
-              <label className="block text-xs text-gray-500 mb-2">BGM</label>
+              <label className="block text-xs text-gray-400 mb-2">BGM</label>
               <div className="flex gap-2 mb-2">
                 <button onClick={() => setBgmMode("auto")}
                   className={`px-3 py-1.5 rounded text-xs transition ${
-                    bgmMode === "auto" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                    bgmMode === "auto" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-300"
                   }`}>
                   자동 ({category})
                 </button>
                 <button onClick={() => setBgmMode("manual")}
                   className={`px-3 py-1.5 rounded text-xs transition ${
-                    bgmMode === "manual" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                    bgmMode === "manual" ? "bg-blue-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-300"
                   }`}>
                   직접 선택
                 </button>
@@ -1220,7 +1310,7 @@ export default function Home() {
                   {BGM_GENRES.map((g) => (
                     <button key={g} onClick={() => setBgmGenre(g)}
                       className={`px-3 py-1.5 rounded text-xs transition ${
-                        bgmGenre === g ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                        bgmGenre === g ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-400 hover:text-gray-300"
                       }`}>
                       {g}
                     </button>
@@ -1245,27 +1335,27 @@ export default function Home() {
             {/* 요약 카드 */}
             <div className="bg-gray-800/50 rounded-lg p-4 mb-5 text-sm space-y-1.5 border border-gray-700/50">
               <div className="flex justify-between">
-                <span className="text-gray-500">업종</span>
+                <span className="text-gray-400">업종</span>
                 <span>{CATEGORIES.find((c) => c.id === category)?.icon} {category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">업체명</span>
+                <span className="text-gray-400">업체명</span>
                 <span>{businessName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">사이즈</span>
+                <span className="text-gray-400">사이즈</span>
                 <span>{FRAME_SIZES.find((f) => f.id === frameSize)?.label}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">사진</span>
+                <span className="text-gray-400">사진</span>
                 <span>{photoMode === "auto" ? `자동 수집 ${autoPhotos.length}장` : `직접 업로드 ${files.length}개`}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">씬 수</span>
+                <span className="text-gray-400">씬 수</span>
                 <span>{scenes.length}개 (15초)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">씬 텍스트</span>
+                <span className="text-gray-400">씬 텍스트</span>
                 <span>{scenes.some((s) => s.headline.trim()) ? "직접 입력" : "AI 자동"}</span>
               </div>
             </div>
@@ -1316,7 +1406,7 @@ export default function Home() {
                     편집하기
                   </button>
                 </div>
-                <button onClick={resetAll} className="block mx-auto text-sm text-gray-500 hover:text-white transition">
+                <button onClick={resetAll} className="block mx-auto text-sm text-gray-400 hover:text-white transition">
                   새로 만들기
                 </button>
               </div>
@@ -1356,7 +1446,7 @@ export default function Home() {
                   controls
                   className="w-full rounded-xl border border-gray-700"
                 />
-                <p className="text-xs text-gray-600 mt-1 text-center">현재 생성된 영상</p>
+                <p className="text-xs text-gray-400 mt-1 text-center">현재 생성된 영상</p>
               </div>
             )}
 
@@ -1371,7 +1461,7 @@ export default function Home() {
                   {previewUrls[i] ? (
                     <img src={previewUrls[i]} alt={`씬 ${i + 1}`} className="w-full aspect-[9/16] object-cover" />
                   ) : (
-                    <div className="w-full aspect-[9/16] bg-gray-800 flex items-center justify-center text-gray-600 text-sm">
+                    <div className="w-full aspect-[9/16] bg-gray-800 flex items-center justify-center text-gray-400 text-sm">
                       씬 {i + 1}
                     </div>
                   )}
@@ -1391,14 +1481,14 @@ export default function Home() {
                 </h3>
 
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">헤드라인</label>
+                  <label className="block text-xs text-gray-400 mb-1">헤드라인</label>
                   <input type="text" value={scenes[editingScene].headline}
                     onChange={(e) => updateScene(editingScene, "headline", e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none" />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">서브텍스트</label>
+                  <label className="block text-xs text-gray-400 mb-1">서브텍스트</label>
                   <textarea value={scenes[editingScene].subtext}
                     onChange={(e) => updateScene(editingScene, "subtext", e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm h-16 resize-none focus:border-blue-500 focus:outline-none" />
@@ -1406,7 +1496,7 @@ export default function Home() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">씬 타입</label>
+                    <label className="block text-xs text-gray-400 mb-1">씬 타입</label>
                     <select value={scenes[editingScene].scene_type}
                       onChange={(e) => updateScene(editingScene, "scene_type", e.target.value)}
                       className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
@@ -1416,7 +1506,7 @@ export default function Home() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">사진 선택</label>
+                    <label className="block text-xs text-gray-400 mb-1">사진 선택</label>
                     <select value={scenes[editingScene].media_index}
                       onChange={(e) => updateScene(editingScene, "media_index", e.target.value)}
                       className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
@@ -1429,29 +1519,29 @@ export default function Home() {
 
                 <div className="flex items-start gap-4">
                   <div>
-                    <span className="text-xs text-gray-500 block mb-1">텍스트 위치</span>
+                    <span className="text-xs text-gray-400 block mb-1">텍스트 위치</span>
                     <PositionSelector value={scenes[editingScene].text_position}
                       onChange={(v) => updateScene(editingScene, "text_position", v)} />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">폰트 색상</span>
+                      <span className="text-xs text-gray-400">폰트 색상</span>
                       <input type="color" value={scenes[editingScene].font_color || "#FFFFFF"}
                         onChange={(e) => updateScene(editingScene, "font_color", e.target.value)}
                         className="w-7 h-6 rounded cursor-pointer border border-gray-700" />
                       {scenes[editingScene].font_color && (
                         <button onClick={() => updateScene(editingScene, "font_color", "")}
-                          className="text-[10px] text-gray-600 hover:text-white">초기화</button>
+                          className="text-[10px] text-gray-400 hover:text-white">초기화</button>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">강조 색상</span>
+                      <span className="text-xs text-gray-400">강조 색상</span>
                       <input type="color" value={scenes[editingScene].emphasis_color || "#FF5050"}
                         onChange={(e) => updateScene(editingScene, "emphasis_color", e.target.value)}
                         className="w-7 h-6 rounded cursor-pointer border border-gray-700" />
                       {scenes[editingScene].emphasis_color && (
                         <button onClick={() => updateScene(editingScene, "emphasis_color", "")}
-                          className="text-[10px] text-gray-600 hover:text-white">초기화</button>
+                          className="text-[10px] text-gray-400 hover:text-white">초기화</button>
                       )}
                     </div>
                   </div>
@@ -1459,10 +1549,10 @@ export default function Home() {
 
                 {/* 고급 편집 옵션 */}
                 <div className="border-t border-gray-700/40 pt-3 space-y-2">
-                  <span className="text-xs text-gray-500 font-medium">고급 설정</span>
+                  <span className="text-xs text-gray-400 font-medium">고급 설정</span>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">레이아웃 변형</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">레이아웃 변형</span>
                       <select value={scenes[editingScene].layout_variant}
                         onChange={(e) => updateScene(editingScene, "layout_variant", Number(e.target.value))}
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
@@ -1472,7 +1562,7 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">사진 배치</span>
                       <select value={scenes[editingScene].photo_mode}
                         onChange={(e) => updateScene(editingScene, "photo_mode", e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
@@ -1483,7 +1573,7 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">오버레이</span>
                       <select value={scenes[editingScene].photo_overlay}
                         onChange={(e) => updateScene(editingScene, "photo_overlay", e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
@@ -1494,7 +1584,7 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">텍스트 효과</span>
                       <select value={scenes[editingScene].text_effect}
                         onChange={(e) => updateScene(editingScene, "text_effect", e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
@@ -1505,7 +1595,7 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">폰트</span>
+                      <span className="text-[10px] text-gray-400 block mb-0.5">폰트</span>
                       <select value={scenes[editingScene].font_name}
                         onChange={(e) => updateScene(editingScene, "font_name", e.target.value)}
                         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1.5 text-xs focus:border-blue-500 focus:outline-none">
@@ -1516,7 +1606,7 @@ export default function Home() {
                       </select>
                     </div>
                     <div>
-                      <span className="text-[10px] text-gray-600 block mb-0.5">
+                      <span className="text-[10px] text-gray-400 block mb-0.5">
                         폰트 크기 ({(scenes[editingScene].font_size_scale * 100).toFixed(0)}%)
                       </span>
                       <input type="range" min="50" max="200" step="10"

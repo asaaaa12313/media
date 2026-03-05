@@ -42,6 +42,7 @@ async def generate_full(
     concept_note: str = Form(""),
     primary_color: str = Form(""),
     secondary_color: str = Form(""),
+    color_palette: str = Form(""),
     bgm_genre: str = Form(""),
     text_mode: str = Form("ai"),
     frame_size: str = Form("1080x1650"),
@@ -136,6 +137,7 @@ async def generate_full(
             "primary_color": primary_color,
             "secondary_color": secondary_color,
             "text_color": "#FFFFFF",
+            "color_palette": [c.strip() for c in color_palette.split(",") if c.strip()] if color_palette else [],
         },
         "scenes": scenes,
         "num_scenes": num_scenes,
@@ -226,6 +228,17 @@ async def api_extract_colors(
         colors = extract_colors_from_category(category)
 
     return {"colors": colors}
+
+
+@router.post("/api/generate-palette")
+async def api_generate_palette(
+    base_color: str = Form("#4A4A4A"),
+    mode: str = Form("analogous"),
+):
+    """베이스 컬러에서 5색 팔레트 생성"""
+    from app.services.color_extractor import generate_palette
+    palette = generate_palette(base_color, mode)
+    return {"palette": palette}
 
 
 @router.post("/api/place-photos")
