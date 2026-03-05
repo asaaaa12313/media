@@ -3,6 +3,7 @@ import logging
 import os
 import random
 import glob
+import subprocess
 from pathlib import Path
 from app.core.config import BGM_DIR
 
@@ -98,9 +99,64 @@ CATEGORY_BGM_MAP = {
 
 
 def auto_select_bgm(category: str, bgm_dir: str = "") -> dict:
-    """업종에 맞는 BGM 자동 선택"""
+    """업종에 맞는 BGM 자동 선택. 파일 없으면 자동 생성."""
     genre = CATEGORY_BGM_MAP.get(category, "밝음")
-    return select_bgm(genre=genre, bgm_dir=bgm_dir)
+    result = select_bgm(genre=genre, bgm_dir=bgm_dir)
+    if not result.get("path"):
+        # BGM 파일이 없으면 간단한 앰비언트 트랙 생성
+        generated = _generate_ambient_bgm(genre, bgm_dir=bgm_dir)
+        if generated:
+            return generated
+    return result
+
+
+def _generate_ambient_bgm(genre: str, duration: float = 18.0, bgm_dir: str = "") -> dict | None:
+    """FFmpeg로 간단한 앰비언트 BGM 생성"""
+    bgm_base = Path(bgm_dir) if bgm_dir else BGM_DIR
+    genre_dir = bgm_base / genre
+    genre_dir.mkdir(parents=True, exist_ok=True)
+    output_path = genre_dir / f"ambient_{genre}.mp3"
+
+    if output_path.exists() and output_path.stat().st_size > 1000:
+        return {"genre": genre, "path": str(output_path), "filename": output_path.name}
+
+    # 장르별 주파수 설정 (C major chord 변형)
+    GENRE_FREQS = {
+        "밝음":   [(523.25, 0.12), (659.25, 0.10), (783.99, 0.08)],
+        "잔잔":   [(261.63, 0.10), (329.63, 0.08), (392.00, 0.07)],
+        "신남":   [(523.25, 0.14), (783.99, 0.12), (1046.50, 0.08)],
+        "강렬한": [(440.00, 0.14), (554.37, 0.12), (659.25, 0.10)],
+        "클래식": [(261.63, 0.10), (329.63, 0.08), (392.00, 0.06), (523.25, 0.05)],
+        "팝":     [(440.00, 0.12), (554.37, 0.10), (659.25, 0.08)],
+    }
+    freqs = GENRE_FREQS.get(genre, GENRE_FREQS["밝음"])
+
+    try:
+        # 여러 사인파를 합성하여 앰비언트 사운드 생성
+        inputs = []
+        for i, (freq, vol) in enumerate(freqs):
+            inputs.extend(["-f", "lavfi", "-i", f"sine=frequency={freq}:duration={duration}"])
+
+        amix_input = "".join(f"[{i}]volume={freqs[i][1]}[s{i}];" for i in range(len(freqs)))
+        amix_input += "".join(f"[s{i}]" for i in range(len(freqs)))
+        amix_input += f"amix=inputs={len(freqs)}:normalize=0,"
+        amix_input += f"afade=t=in:st=0:d=1.5,afade=t=out:st={duration-2}:d=2"
+
+        cmd = ["ffmpeg", "-y"] + inputs + [
+            "-filter_complex", amix_input,
+            "-t", str(duration),
+            "-c:a", "libmp3lame", "-b:a", "128k",
+            str(output_path),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        if result.returncode == 0 and output_path.exists():
+            logger.info(f"[BGM] 앰비언트 BGM 자동 생성: {output_path}")
+            return {"genre": genre, "path": str(output_path), "filename": output_path.name}
+        else:
+            logger.warning(f"[BGM] 앰비언트 BGM 생성 실패: {result.stderr[-200:]}")
+    except Exception as e:
+        logger.warning(f"[BGM] 앰비언트 BGM 생성 오류: {e}")
+    return None
 
 
 def list_genres(bgm_dir: str = "") -> list[dict]:

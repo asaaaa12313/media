@@ -20,7 +20,7 @@ from app.core.config import (
     FPS, TARGET_DURATION,
     SCENE_TIMINGS, TRANSITION_DURATION,
     generate_scene_timings, get_scene_sequence,
-    get_transition_type,
+    get_transition_list,
 )
 from app.services.layout_renderer import (
     LayoutRenderer, SceneLayout, build_scene_layout, render_text_overlay_png,
@@ -110,14 +110,27 @@ def _try_fullscreen_html_render(
         if scene_type == "cta" and _sub.strip() == _cta.strip():
             _sub = ""
 
+        # tagline_sub: brand-header에 쓰는 짧은 부제 (중복 방지용)
+        _tagline_sub = business.tagline or ""
+        # sub_copy와 동일하면 비움 (중복 방지)
+        if _tagline_sub.strip() == _sub.strip():
+            _tagline_sub = ""
+
+        # extra_info: content.html의 sub-info 영역용 (headline/sub_copy와 다른 내용)
+        _extra_info = ""
+        if scene_type in ("gallery", "highlight", "review") and business.tagline:
+            if business.tagline.strip() != (scene.headline or "").strip() and business.tagline.strip() != _sub.strip():
+                _extra_info = business.tagline
+
         html = tmpl.render(
             width=width, height=height,
             business_name=business.name,
             tagline=business.tagline,
-            tagline_sub=business.tagline or "",
+            tagline_sub=_tagline_sub,
             headline=scene.headline or business.name,
             sub_copy=_sub,
             highlight=scene.subtext if scene_type in ("highlight", "review") else "",
+            extra_info=_extra_info,
             photo_base64="",
             logo_base64=_img_to_base64(logo),
             qr_base64=_img_to_base64(qr),
@@ -189,14 +202,26 @@ def _try_fullscreen_html_video(
         if scene_type == "cta" and _sub.strip() == _cta.strip():
             _sub = ""
 
+        # tagline_sub: brand-header에 쓰는 짧은 부제 (중복 방지용)
+        _tagline_sub_v = business.tagline or ""
+        if _tagline_sub_v.strip() == _sub.strip():
+            _tagline_sub_v = ""
+
+        # extra_info: content.html의 sub-info 영역용 (headline/sub_copy와 다른 내용)
+        _extra_info_v = ""
+        if scene_type in ("gallery", "highlight", "review") and business.tagline:
+            if business.tagline.strip() != (scene.headline or "").strip() and business.tagline.strip() != _sub.strip():
+                _extra_info_v = business.tagline
+
         html = tmpl.render(
             width=width, height=height,
             business_name=business.name,
             tagline=business.tagline,
-            tagline_sub=business.tagline or "",
+            tagline_sub=_tagline_sub_v,
             headline=scene.headline or business.name,
             sub_copy=_sub,
             highlight=scene.subtext if scene_type in ("highlight", "review") else "",
+            extra_info=_extra_info_v,
             photo_base64="",
             logo_base64=_img_to_base64(logo),
             qr_base64=_img_to_base64(qr),
@@ -799,10 +824,11 @@ def generate_video_clips(
     if not clip_paths:
         raise RuntimeError("영상 클립 생성 실패: 모든 씬 렌더링 실패")
 
-    # 업종별 전환 효과로 xfade 합성
-    transition_type = get_transition_type(business.category)
+    # 씬 경계마다 다양한 전환 효과 적용
+    num_boundaries = len(clip_paths) - 1
+    transition_list = get_transition_list(business.category, num_boundaries)
     output_path = str(job_dir / "combined.mp4")
-    xfade_concat(clip_paths, clip_durations, output_path, transition_dur, transition_type)
+    xfade_concat(clip_paths, clip_durations, output_path, transition_dur, transition_list)
 
     if progress_cb:
         progress_cb(1.0)

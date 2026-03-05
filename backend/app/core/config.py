@@ -265,25 +265,23 @@ def generate_scene_timings(num_scenes: int, total_duration: float = 15.0) -> lis
     return [(round(i * duration_per_scene, 2), round((i + 1) * duration_per_scene, 2))
             for i in range(num_scenes)]
 
-# 씬 전환 효과 (FFmpeg xfade)
-CATEGORY_TRANSITIONS = {
-    "음식점": "fade",
-    "헬스": "wipeleft",
-    "뷰티": "dissolve",
-    "학원": "fade",
-    "병원": "fade",
-    "안경": "slideright",
-    "부동산": "fade",
-    "골프": "dissolve",
-    "핸드폰": "wipeleft",
-    "동물병원": "fade",
-    "미용실": "dissolve",
-    "기타": "fade",
-}
+# 씬 전환 효과 (FFmpeg xfade) — 다양한 효과 순환
+TRANSITION_POOL = [
+    "fade", "slideright", "circleopen", "dissolve", "wipeleft",
+    "fadeblack", "diagtr", "smoothleft", "slideleft", "circleclose",
+    "wiperight", "fadewhite", "smoothright", "zoomin", "diagbl",
+]
+
+
+def get_transition_list(category: str, num_transitions: int) -> list[str]:
+    """씬 경계마다 다른 전환 효과를 순환 반환"""
+    pool = TRANSITION_POOL
+    return [pool[i % len(pool)] for i in range(num_transitions)]
 
 
 def get_transition_type(category: str) -> str:
-    return CATEGORY_TRANSITIONS.get(category, "fade")
+    """레거시 호환용 — 단일 전환 타입 반환"""
+    return "fade"
 
 # BGM
 BGM_VOLUME = 0.45

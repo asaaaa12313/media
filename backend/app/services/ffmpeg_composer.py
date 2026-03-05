@@ -131,8 +131,8 @@ def xfade_concat(
     clip_paths: list[str],
     clip_durations: list[float],
     output_path: str,
-    transition_duration: float = 0.5,
-    transition: str = "fade",
+    transition_duration: float = 0.8,
+    transition: str | list[str] = "fade",
 ) -> str:
     """MP4 클립들을 xfade 전환 효과로 합성
 
@@ -141,7 +141,7 @@ def xfade_concat(
         clip_durations: 각 클립의 길이 (초)
         output_path: 출력 MP4 경로
         transition_duration: 전환 효과 길이 (초)
-        transition: xfade 전환 타입 (fade/wipeleft/slideright/dissolve 등)
+        transition: 단일 전환 타입 또는 씬 경계별 전환 리스트
     Returns:
         출력 파일 경로
     """
@@ -150,20 +150,24 @@ def xfade_concat(
         raise RuntimeError("xfade_concat: 클립 없음")
 
     if n == 1:
-        # 단일 클립이면 복사
         import shutil
         shutil.copyfile(clip_paths[0], output_path)
         return output_path
 
-    # FFmpeg xfade 필터 체인 빌드
-    # [0][1]xfade=transition=fade:duration=0.5:offset=2.5[v01];
-    # [v01][2]xfade=transition=fade:duration=0.5:offset=5.0[v]
+    # transition을 리스트로 정규화
+    if isinstance(transition, str):
+        transitions = [transition] * (n - 1)
+    else:
+        transitions = list(transition)
+        # 부족하면 순환
+        while len(transitions) < n - 1:
+            transitions.append(transitions[len(transitions) % len(transition)])
+
     cmd = ["ffmpeg", "-y"]
     for p in clip_paths:
         cmd.extend(["-i", p])
 
     filter_parts = []
-    # 누적 오프셋 계산: 첫 클립 끝 시점 - 전환 길이
     cumulative_offset = clip_durations[0] - transition_duration
 
     for i in range(1, n):
@@ -177,8 +181,9 @@ def xfade_concat(
         else:
             out_label = f"[v{i-1:02d}]"
 
+        t = transitions[i - 1]
         filter_parts.append(
-            f"{src_label}xfade=transition={transition}:"
+            f"{src_label}xfade=transition={t}:"
             f"duration={transition_duration}:"
             f"offset={cumulative_offset:.2f}{out_label}"
         )
@@ -198,12 +203,11 @@ def xfade_concat(
         output_path,
     ])
 
-    logger.info(f"[xfade_concat] {n} clips, transition={transition}, dur={transition_duration}s")
+    logger.info(f"[xfade_concat] {n} clips, transitions={transitions}, dur={transition_duration}s")
     logger.info(f"[xfade_concat] filter: {filter_str}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
     if result.returncode != 0:
         logger.error(f"[xfade_concat] FFmpeg stderr:\n{result.stderr}")
-        # xfade 실패 시 단순 concat 폴백
         logger.warning("[xfade_concat] xfade 실패, 단순 concat 폴백")
         return _simple_concat_fallback(clip_paths, output_path)
 

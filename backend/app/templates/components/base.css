@@ -40,16 +40,16 @@ body {
 .brand-header {
     display: flex;
     align-items: center;
-    padding: 20px 24px;
+    padding: 20px 28px;
     gap: 16px;
     background: rgba(0,0,0,0.8);
-    height: 100px;
+    height: 110px;
     flex-shrink: 0;
 }
 .brand-header .logo {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
     overflow: hidden;
     background: #fff;
     flex-shrink: 0;
@@ -57,14 +57,14 @@ body {
 .brand-header .logo img { width: 100%; height: 100%; object-fit: cover; }
 .brand-header .name-wrap { flex: 1; }
 .brand-header .biz-name {
-    font-family: 'Gmarket';
-    font-size: 28px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 36px;
     font-weight: 700;
     color: #fff;
     letter-spacing: -0.5px;
 }
 .brand-header .biz-sub {
-    font-size: 14px;
+    font-size: 20px;
     color: rgba(255,255,255,0.6);
     margin-top: 2px;
 }
@@ -73,27 +73,28 @@ body {
 .bottom-bar {
     display: flex;
     align-items: center;
-    padding: 16px 24px;
-    gap: 16px;
+    padding: 18px 28px;
+    gap: 18px;
     background: rgba(17,17,17,0.93);
-    height: 120px;
+    height: 130px;
     flex-shrink: 0;
 }
 .bottom-bar .qr {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
+    width: 86px;
+    height: 86px;
+    border-radius: 10px;
     overflow: hidden;
     background: #fff;
     flex-shrink: 0;
 }
 .bottom-bar .qr img { width: 100%; height: 100%; object-fit: cover; }
 .bottom-bar .info { flex: 1; padding-left: 0; }
-.bottom-bar .address { font-size: 16px; color: rgba(255,255,255,0.8); }
-.bottom-bar .phone-label { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 4px; letter-spacing: 1px; }
+.bottom-bar .address { font-size: 22px; color: rgba(255,255,255,0.8); }
+.bottom-bar .phone-label { font-size: 16px; color: rgba(255,255,255,0.5); margin-top: 4px; letter-spacing: 1px; }
 .bottom-bar .phone {
-    font-family: 'Gmarket';
-    font-size: 32px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 42px;
+    font-weight: 700;
     color: #fff;
     letter-spacing: -1px;
     margin-top: 2px;
@@ -102,9 +103,9 @@ body {
 /* 서비스 뱃지 */
 .badge {
     display: inline-flex;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 22px;
     font-weight: 600;
     color: #fff;
 }
@@ -112,11 +113,11 @@ body {
 /* 네이버 배지 */
 .naver-badge {
     display: inline-flex;
-    padding: 6px 12px;
-    border-radius: 4px;
+    padding: 8px 16px;
+    border-radius: 6px;
     background: #03C75A;
-    font-family: 'Gmarket';
-    font-size: 14px;
+    font-family: 'Pretendard', sans-serif;
+    font-size: 20px;
     font-weight: 700;
     color: #fff;
 }
@@ -156,35 +157,35 @@ body {
     background-size: 20px 20px;
 }
 
-/* ─── 애니메이션 키프레임 ─── */
+/* ─── 애니메이션 키프레임 (강화된 모션) ─── */
 
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(40px); }
+    from { opacity: 0; transform: translateY(70px); }
     to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fadeInDown {
-    from { opacity: 0; transform: translateY(-30px); }
+    from { opacity: 0; transform: translateY(-60px); }
     to { opacity: 1; transform: translateY(0); }
 }
 @keyframes slideInLeft {
-    from { opacity: 0; transform: translateX(-60px); }
+    from { opacity: 0; transform: translateX(-120px); }
     to { opacity: 1; transform: translateX(0); }
 }
 @keyframes slideInRight {
-    from { opacity: 0; transform: translateX(60px); }
+    from { opacity: 0; transform: translateX(120px); }
     to { opacity: 1; transform: translateX(0); }
 }
 @keyframes scaleIn {
-    from { opacity: 0; transform: scale(0.7); }
+    from { opacity: 0; transform: scale(0.4); }
     to { opacity: 1; transform: scale(1); }
 }
 @keyframes accentGrow {
     from { width: 0; opacity: 0; }
-    to { width: 60px; opacity: 1; }
+    to { width: 80px; opacity: 1; }
 }
 @keyframes expandWidth {
     from { transform: scaleX(0); }
@@ -192,36 +193,64 @@ body {
 }
 @keyframes glowPulse {
     0%, 100% { text-shadow: 0 0 20px rgba(255,255,255,0.2); }
-    50% { text-shadow: 0 0 40px rgba(255,255,255,0.5), 0 0 80px rgba(255,255,255,0.2); }
+    50% { text-shadow: 0 0 50px rgba(255,255,255,0.6), 0 0 100px rgba(255,255,255,0.3); }
 }
 @keyframes slowZoom {
     from { transform: scale(1.0); }
-    to { transform: scale(1.05); }
+    to { transform: scale(1.08); }
 }
 @keyframes shimmer {
     0% { background-position: -200% 0; }
     100% { background-position: 200% 0; }
 }
 @keyframes popIn {
-    0% { opacity: 0; transform: scale(0.5); }
-    70% { transform: scale(1.05); }
+    0% { opacity: 0; transform: scale(0.3); }
+    60% { transform: scale(1.08); }
     100% { opacity: 1; transform: scale(1); }
 }
 @keyframes borderDraw {
     from { stroke-dashoffset: 100%; }
     to { stroke-dashoffset: 0; }
 }
+@keyframes blurIn {
+    from { opacity: 0; filter: blur(16px); }
+    to { opacity: 1; filter: blur(0); }
+}
+@keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 1; transform: scale(1.1); }
+    70% { transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+}
+@keyframes flipInX {
+    from { opacity: 0; transform: perspective(800px) rotateX(80deg); }
+    to { opacity: 1; transform: perspective(800px) rotateX(0); }
+}
+@keyframes slideInUp {
+    from { opacity: 0; transform: translateY(100%); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes zoomFadeIn {
+    from { opacity: 0; transform: scale(1.3); filter: blur(8px); }
+    to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+@keyframes typeReveal {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0% 0 0); }
+}
 
 /* 애니메이션 유틸리티 클래스 */
 .anim-fade-in { animation: fadeIn 0.6s ease-out both; }
-.anim-fade-in-up { animation: fadeInUp 0.6s ease-out both; }
-.anim-fade-in-down { animation: fadeInDown 0.5s ease-out both; }
-.anim-slide-left { animation: slideInLeft 0.6s ease-out both; }
-.anim-slide-right { animation: slideInRight 0.6s ease-out both; }
-.anim-scale-in { animation: scaleIn 0.5s ease-out both; }
-.anim-pop-in { animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-fade-in-up { animation: fadeInUp 0.7s ease-out both; }
+.anim-fade-in-down { animation: fadeInDown 0.6s ease-out both; }
+.anim-slide-left { animation: slideInLeft 0.7s ease-out both; }
+.anim-slide-right { animation: slideInRight 0.7s ease-out both; }
+.anim-scale-in { animation: scaleIn 0.6s ease-out both; }
+.anim-pop-in { animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 .anim-glow { animation: glowPulse 2s ease-in-out infinite; }
 .anim-slow-zoom { animation: slowZoom 4s ease-in-out both; }
+.anim-blur-in { animation: blurIn 0.7s ease-out both; }
+.anim-bounce-in { animation: bounceIn 0.8s ease-out both; }
 
 /* 딜레이 유틸리티 */
 .delay-100 { animation-delay: 0.1s; }
