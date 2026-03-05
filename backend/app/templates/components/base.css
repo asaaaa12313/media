@@ -1,9 +1,20 @@
 /* 공통 폰트 */
-@font-face { font-family: 'Gmarket'; src: url('file:///app/fonts/GmarketSansBold.otf'); }
-@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Bold.otf'); }
-@font-face { font-family: 'NanumSquare'; src: url('file:///app/fonts/NanumSquareRoundEB.ttf'); }
+@font-face { font-family: 'Gmarket'; src: url('file:///app/fonts/GmarketSansBold.otf'); font-weight: 700; }
+@font-face { font-family: 'Gmarket'; src: url('file:///app/fonts/GmarketSansMedium.otf'); font-weight: 500; }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Bold.otf'); font-weight: 700; }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-SemiBold.otf'); font-weight: 600; }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Regular.otf'); font-weight: 400; }
+@font-face { font-family: 'Pretendard'; src: url('file:///app/fonts/Pretendard-Black.otf'); font-weight: 900; }
+@font-face { font-family: 'NanumSquare'; src: url('file:///app/fonts/NanumSquareRoundEB.ttf'); font-weight: 800; }
+@font-face { font-family: 'NanumSquare'; src: url('file:///app/fonts/NanumSquareB.ttf'); font-weight: 700; }
+@font-face { font-family: 'NanumSquareRound'; src: url('file:///app/fonts/NanumSquareRoundR.ttf'); font-weight: 400; }
+@font-face { font-family: 'NanumSquareRound'; src: url('file:///app/fonts/NanumSquareRoundEB.ttf'); font-weight: 800; }
+@font-face { font-family: 'NotoSansKR'; src: url('file:///app/fonts/NotoSansKR-Bold.ttf'); }
 @font-face { font-family: 'DoHyeon'; src: url('file:///app/fonts/DoHyeon-Regular.ttf'); }
 @font-face { font-family: 'Jua'; src: url('file:///app/fonts/Jua-Regular.ttf'); }
+@font-face { font-family: 'BlackHanSans'; src: url('file:///app/fonts/BlackHanSans-Regular.ttf'); }
+@font-face { font-family: 'GasoekOne'; src: url('file:///app/fonts/Gasoek-One.ttf'); }
+@font-face { font-family: 'Dongle'; src: url('file:///app/fonts/Dongle-Bold.ttf'); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -20,7 +31,9 @@ body {
     width: {{ width }}px;
     height: {{ height }}px;
     overflow: hidden;
-    font-family: 'Pretendard', 'NanumSquare', sans-serif;
+    font-family: 'Pretendard', 'NotoSansKR', 'NanumSquare', sans-serif;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
 }
 
 /* 브랜드 헤더 */

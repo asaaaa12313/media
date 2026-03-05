@@ -129,9 +129,26 @@ def _extract_info_from_apollo(apollo: dict, place_id: str) -> dict:
 
     result["name"] = detail.get("name", "")
     result["category"] = detail.get("category", "")
-    result["phone"] = detail.get("virtualPhone") or detail.get("phone") or ""
-    result["address"] = detail.get("roadAddress") or detail.get("address") or ""
-    result["website"] = detail.get("homepage") or detail.get("talktalkUrl") or ""
+
+    # 전화번호: 다양한 키에서 탐색
+    result["phone"] = (
+        detail.get("virtualPhone") or detail.get("phone")
+        or detail.get("bizPhone") or detail.get("phoneNumber")
+        or detail.get("tel") or ""
+    )
+    # Apollo 전체에서 전화번호 패턴으로 추가 탐색
+    if not result["phone"]:
+        for key, val in apollo.items():
+            if isinstance(val, dict) and val.get("__typename") in (
+                "PlaceDetailBase", "PlaceDetailBiz", "PlaceDetailBizBase",
+            ):
+                ph = val.get("virtualPhone") or val.get("phone") or val.get("bizPhone") or ""
+                if ph:
+                    result["phone"] = ph
+                    break
+
+    result["address"] = detail.get("roadAddress") or detail.get("address") or detail.get("fullAddress") or ""
+    result["website"] = detail.get("homepage") or detail.get("talktalkUrl") or detail.get("url") or ""
     result["tagline"] = (detail.get("description") or detail.get("microReview") or
                          detail.get("introduction") or detail.get("bizsummary") or "")
 
@@ -149,19 +166,58 @@ def _extract_info_from_apollo(apollo: dict, place_id: str) -> dict:
             if isinstance(c, str) and c not in FACILITY_EXCLUDES
         ]
 
-    # 영업시간 파싱
-    business_hours = detail.get("businessHours") or detail.get("newBusinessHours") or detail.get("operationHours")
+    # 영업시간 파싱 — 다양한 키와 형식 지원
+    business_hours = (
+        detail.get("businessHours") or detail.get("newBusinessHours")
+        or detail.get("operationHours") or detail.get("businessHoursWeek")
+        or detail.get("bizHour") or detail.get("openHour")
+    )
+    # Apollo 전체에서 영업시간 관련 객체 탐색
+    if not business_hours:
+        for key, val in apollo.items():
+            if isinstance(val, dict):
+                tn = val.get("__typename", "")
+                if "BusinessHour" in tn or "OperationHour" in tn:
+                    business_hours = val
+                    break
+                # ref 형태 ({businessHours: {...ref}})
+                bh_ref = val.get("businessHours") or val.get("newBusinessHours")
+                if bh_ref and isinstance(bh_ref, (list, dict)):
+                    business_hours = bh_ref
+                    break
+
     if business_hours:
         if isinstance(business_hours, list):
             parts = []
             for bh in business_hours:
                 if isinstance(bh, dict):
-                    day = bh.get("day", "") or bh.get("dayOfWeek", "")
-                    start = bh.get("startTime", "") or bh.get("openTime", "")
-                    end = bh.get("endTime", "") or bh.get("closeTime", "")
-                    if day and start:
+                    day = bh.get("day", "") or bh.get("dayOfWeek", "") or bh.get("dayName", "")
+                    start = bh.get("startTime", "") or bh.get("openTime", "") or bh.get("from", "")
+                    end = bh.get("endTime", "") or bh.get("closeTime", "") or bh.get("to", "")
+                    # "영업시간" 텍스트 형태
+                    text = bh.get("businessHours", "") or bh.get("hours", "") or bh.get("timeDescription", "")
+                    if text and not start:
+                        parts.append(f"{day} {text}" if day else text)
+                    elif day and start:
                         parts.append(f"{day} {start}-{end}" if end else f"{day} {start}")
+                elif isinstance(bh, str) and bh.strip():
+                    parts.append(bh.strip())
             result["operating_hours"] = ", ".join(parts)
+        elif isinstance(business_hours, dict):
+            # 단일 객체 형태
+            parts = []
+            for day_key in ("월", "화", "수", "목", "금", "토", "일",
+                           "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"):
+                val = business_hours.get(day_key)
+                if val:
+                    parts.append(f"{day_key} {val}" if isinstance(val, str) else str(val))
+            if parts:
+                result["operating_hours"] = ", ".join(parts)
+            else:
+                # 일반 텍스트 필드
+                text = business_hours.get("description", "") or business_hours.get("text", "")
+                if text:
+                    result["operating_hours"] = text
         elif isinstance(business_hours, str):
             result["operating_hours"] = business_hours
 
