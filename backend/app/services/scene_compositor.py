@@ -55,12 +55,15 @@ _SCENE_HTML_MAP = {
 }
 
 
-def _img_to_base64(img: Image.Image | None, fmt: str = "PNG") -> str:
+def _img_to_base64(img: Image.Image | None, fmt: str = "PNG", quality: int = 85) -> str:
     """PIL Image → base64 문자열"""
     if img is None:
         return ""
     buf = io.BytesIO()
-    img.save(buf, format=fmt)
+    save_kwargs = {"format": fmt}
+    if fmt.upper() == "JPEG":
+        save_kwargs["quality"] = quality
+    img.save(buf, **save_kwargs)
     return base64.b64encode(buf.getvalue()).decode()
 
 
@@ -89,7 +92,8 @@ def _try_fullscreen_html_render(
 
         tmpl = _get_jinja_env().get_template(tmpl_path)
 
-        # 사진은 디자인 배경으로 대체되어 더 이상 base64로 전달하지 않음
+        # 사진을 base64로 전달 (Ken Burns 배경용)
+        photo_b64 = _img_to_base64(photo, "JPEG", quality=60) if photo else ""
 
         # 서비스 목록 (info_grid용)
         services = business.services[:6] if business.services else []
@@ -131,7 +135,7 @@ def _try_fullscreen_html_render(
             sub_copy=_sub,
             highlight=scene.subtext if scene_type in ("highlight", "review") else "",
             extra_info=_extra_info,
-            photo_base64="",
+            photo_base64=photo_b64,
             logo_base64=_img_to_base64(logo),
             qr_base64=_img_to_base64(qr),
             phone=business.phone,
@@ -175,6 +179,7 @@ def _try_fullscreen_html_video(
     height: int,
     duration: float = 3.0,
     output_path: str = "",
+    photo: Image.Image | None = None,
 ) -> str | None:
     """씬을 CSS 애니메이션 포함 MP4로 렌더링. 실패 시 None."""
     tmpl_path = _SCENE_HTML_MAP.get(scene_type)
@@ -185,6 +190,9 @@ def _try_fullscreen_html_video(
         from app.services.html_renderer import render_html_to_video_sync
 
         tmpl = _get_jinja_env().get_template(tmpl_path)
+
+        # 사진을 base64로 전달 (Ken Burns 배경용)
+        photo_b64 = _img_to_base64(photo, "JPEG", quality=60) if photo else ""
 
         services = business.services[:6] if business.services else []
 
@@ -222,7 +230,7 @@ def _try_fullscreen_html_video(
             sub_copy=_sub,
             highlight=scene.subtext if scene_type in ("highlight", "review") else "",
             extra_info=_extra_info_v,
-            photo_base64="",
+            photo_base64=photo_b64,
             logo_base64=_img_to_base64(logo),
             qr_base64=_img_to_base64(qr),
             phone=business.phone,
@@ -777,12 +785,17 @@ def generate_video_clips(
         scene_type = scene.scene_type or (default_sequence[i] if i < len(default_sequence) else "cta")
         clip_path = str(clips_dir / f"scene_{i}.mp4")
 
+        # 씬에 해당하는 사진 로드
+        photo_idx = min(scene.media_index, max(0, len(photos) - 1))
+        photo = photos[photo_idx] if photo_idx < len(photos) else (photos[0] if photos else None)
+
         # CSS 애니메이션 포함 MP4 클립 생성
         result = _try_fullscreen_html_video(
             scene, scene_type, business, template,
             logo_small, qr, W, H,
             duration=duration,
             output_path=clip_path,
+            photo=photo,
         )
 
         if result:
