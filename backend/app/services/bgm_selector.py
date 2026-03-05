@@ -1,4 +1,5 @@
 """BGM 자동 선택: 자막 내용 + 파일명 키워드 기반"""
+from __future__ import annotations
 import logging
 import os
 import random
