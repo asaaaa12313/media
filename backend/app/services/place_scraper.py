@@ -113,6 +113,7 @@ def _extract_info_from_apollo(apollo: dict, place_id: str) -> dict:
     result = {
         "name": "", "category": "", "phone": "", "address": "",
         "website": "", "tagline": "", "services": [], "photo_urls": [],
+        "operating_hours": "", "directions": "",
     }
 
     detail = apollo.get(f"PlaceDetailBase:{place_id}", {})
@@ -131,12 +132,52 @@ def _extract_info_from_apollo(apollo: dict, place_id: str) -> dict:
     result["phone"] = detail.get("virtualPhone") or detail.get("phone") or ""
     result["address"] = detail.get("roadAddress") or detail.get("address") or ""
     result["website"] = detail.get("homepage") or detail.get("talktalkUrl") or ""
-    result["tagline"] = detail.get("description") or detail.get("microReview") or ""
+    result["tagline"] = (detail.get("description") or detail.get("microReview") or
+                         detail.get("introduction") or detail.get("bizsummary") or "")
 
     # 서비스/편의시설
     conveniences = detail.get("conveniences", [])
     if isinstance(conveniences, list):
         result["services"] = [c for c in conveniences if isinstance(c, str)]
+
+    # 영업시간 파싱
+    business_hours = detail.get("businessHours") or detail.get("newBusinessHours") or detail.get("operationHours")
+    if business_hours:
+        if isinstance(business_hours, list):
+            parts = []
+            for bh in business_hours:
+                if isinstance(bh, dict):
+                    day = bh.get("day", "") or bh.get("dayOfWeek", "")
+                    start = bh.get("startTime", "") or bh.get("openTime", "")
+                    end = bh.get("endTime", "") or bh.get("closeTime", "")
+                    if day and start:
+                        parts.append(f"{day} {start}-{end}" if end else f"{day} {start}")
+            result["operating_hours"] = ", ".join(parts)
+        elif isinstance(business_hours, str):
+            result["operating_hours"] = business_hours
+
+    # 오시는길 / 교통정보
+    transit_info = detail.get("transitInfo") or detail.get("directions") or detail.get("nearTransit")
+    if transit_info:
+        if isinstance(transit_info, dict):
+            parts = []
+            subway = transit_info.get("subway") or transit_info.get("nearSubway")
+            bus = transit_info.get("bus") or transit_info.get("nearBus")
+            if subway:
+                if isinstance(subway, list):
+                    parts.append("지하철: " + ", ".join(str(s) for s in subway[:3]))
+                else:
+                    parts.append(f"지하철: {subway}")
+            if bus:
+                if isinstance(bus, list):
+                    parts.append("버스: " + ", ".join(str(b) for b in bus[:3]))
+                else:
+                    parts.append(f"버스: {bus}")
+            result["directions"] = " / ".join(parts)
+        elif isinstance(transit_info, list):
+            result["directions"] = ", ".join(str(t) for t in transit_info[:5])
+        elif isinstance(transit_info, str):
+            result["directions"] = transit_info
 
     return result
 
@@ -203,6 +244,7 @@ def extract_place_info(url: str) -> dict:
     result = {
         "name": "", "category": "기타", "phone": "", "address": "",
         "website": "", "tagline": "", "services": [], "photo_urls": [],
+        "operating_hours": "", "directions": "",
     }
 
     try:
@@ -230,6 +272,10 @@ def extract_place_info(url: str) -> dict:
                 result["services"] = info["services"]
             if info.get("category"):
                 result["category"] = _map_category(info["category"])
+            if info.get("operating_hours"):
+                result["operating_hours"] = info["operating_hours"]
+            if info.get("directions"):
+                result["directions"] = info["directions"]
 
         # 3. fallback: 메타태그
         if not result["name"]:

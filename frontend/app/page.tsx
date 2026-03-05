@@ -40,12 +40,8 @@ const FRAME_SIZES = [
 
 const TEXT_POSITIONS = [
   { id: "", label: "자동" },
-  { id: "top_left", label: "좌상" },
   { id: "top_center", label: "상단" },
-  { id: "top_right", label: "우상" },
-  { id: "mid_left", label: "좌중" },
   { id: "mid_center", label: "중앙" },
-  { id: "mid_right", label: "우중" },
   { id: "bottom_wide", label: "하단" },
 ];
 
@@ -128,6 +124,7 @@ export default function Home() {
   const [operatingHours, setOperatingHours] = useState("");
   const [conceptNote, setConceptNote] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
+  const [suggestedColors, setSuggestedColors] = useState<string[]>([]);
 
   // Media
   const [files, setFiles] = useState<File[]>([]);
@@ -167,6 +164,7 @@ export default function Home() {
 
   // 고급 설정 토글
   const [advancedOpen, setAdvancedOpen] = useState<Record<number, boolean>>({});
+  const [effectMode, setEffectMode] = useState<"auto" | "manual">("auto");
 
   // Edit mode (생성 후)
   const [editMode, setEditMode] = useState(false);
@@ -229,10 +227,19 @@ export default function Home() {
       if (data.website) setWebsite(data.website);
       if (data.tagline) setTagline(data.tagline);
       if (data.services?.length) setServices(data.services);
+      if (data.operating_hours) setOperatingHours(data.operating_hours);
       if (data.photo_urls?.length) {
         setAutoPhotos(data.photo_urls);
         setPhotoMode("auto");
       }
+      // 브랜드 컬러 자동 추출 (백그라운드)
+      const cat = data.category || category;
+      fetch(`${API}/api/extract-colors`, {
+        method: "POST",
+        body: (() => { const fd = new FormData(); fd.append("category", cat); return fd; })(),
+      }).then(r => r.json()).then(d => {
+        if (d.colors?.length) setSuggestedColors(d.colors);
+      }).catch(() => {});
       setPlaceLoading(false);
       setStep(2);
     } catch {
@@ -499,7 +506,7 @@ export default function Home() {
   };
 
   const enterEditMode = () => {
-    if (scenes.length === 0 && projectId) {
+    if (projectId) {
       loadPreviews(projectId);
     }
     setEditMode(true);
@@ -529,12 +536,14 @@ export default function Home() {
         }),
       });
       if (res.ok) {
-        // 프리뷰 갱신
-        setPreviewUrls((prev) => {
-          const updated = [...prev];
-          updated[idx] = `${API}/api/projects/${projectId}/preview/${idx}?t=${Date.now()}`;
-          return updated;
-        });
+        // 서버 프리뷰 생성 대기 후 갱신
+        setTimeout(() => {
+          setPreviewUrls((prev) => {
+            const updated = [...prev];
+            updated[idx] = `${API}/api/projects/${projectId}/preview/${idx}?t=${Date.now()}`;
+            return updated;
+          });
+        }, 500);
       }
     } catch {
       // ignore
@@ -604,41 +613,24 @@ export default function Home() {
   const photoCount = photoMode === "auto" ? autoPhotos.length : files.length;
   const STEP_LABELS = ["시작", "정보 & 사진", "씬 편집", "생성"];
 
-  // --- 텍스트 위치 선택 그리드 ---
-  const PositionGrid = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
-    const positions = [
-      ["top_left", "top_center", "top_right"],
-      ["mid_left", "mid_center", "mid_right"],
-      ["bottom_wide", "bottom_wide", "bottom_wide"],
-    ];
-    const labels: Record<string, string> = {
-      top_left: "좌상", top_center: "상단", top_right: "우상",
-      mid_left: "좌중", mid_center: "중앙", mid_right: "우중",
-      bottom_wide: "하단",
-    };
-    return (
-      <div className="grid grid-cols-3 gap-1 w-full max-w-[220px]">
-        {positions.flat().map((pos, i) => {
-          // bottom_wide는 3칸 merge (첫번째만 렌더)
-          if (pos === "bottom_wide" && i > 6) return null;
-          const isBottomWide = pos === "bottom_wide" && i === 6;
-          return (
-            <button
-              key={i}
-              onClick={() => onChange(value === pos ? "" : pos)}
-              className={`${isBottomWide ? "col-span-3" : ""} py-2 px-1 text-xs font-medium rounded-md transition border ${
-                value === pos
-                  ? "bg-blue-600 border-blue-500 text-white shadow-sm shadow-blue-500/30"
-                  : "bg-gray-800/80 border-gray-600/60 text-gray-400 hover:text-white hover:bg-gray-700/80 hover:border-gray-500"
-              }`}
-            >
-              {labels[pos]}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
+  // --- 텍스트 위치 선택 ---
+  const PositionSelector = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <div className="flex gap-1">
+      {TEXT_POSITIONS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => onChange(value === p.id ? "" : p.id)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition border ${
+            value === p.id
+              ? "bg-blue-600 border-blue-500 text-white shadow-sm shadow-blue-500/30"
+              : "bg-gray-800/80 border-gray-600/60 text-gray-400 hover:text-white hover:bg-gray-700/80"
+          }`}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-[#0f0f0f] text-white">
@@ -888,6 +880,19 @@ export default function Home() {
                     <button onClick={() => setPrimaryColor("")} className="text-xs text-gray-500 hover:text-white">초기화</button>
                   )}
                 </div>
+                {suggestedColors.length > 0 && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] text-gray-600">추천</span>
+                    {suggestedColors.map((c, i) => (
+                      <button key={i} onClick={() => setPrimaryColor(c)}
+                        className={`w-7 h-7 rounded-full border-2 transition hover:scale-110 ${
+                          primaryColor === c ? "border-white" : "border-gray-600"
+                        }`}
+                        style={{ backgroundColor: c }}
+                        title={c} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1010,6 +1015,26 @@ export default function Home() {
               <p className="text-xs text-green-400 mb-2">텍스트 준비됨</p>
             )}
 
+            {/* 효과 모드 선택 */}
+            <div className="flex items-center gap-2 mb-4 p-3 bg-gray-800/40 rounded-lg border border-gray-700/30">
+              <span className="text-xs text-gray-400">효과</span>
+              <button onClick={() => setEffectMode("auto")}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
+                  effectMode === "auto" ? "bg-green-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                }`}>
+                자동 적용
+              </button>
+              <button onClick={() => setEffectMode("manual")}
+                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
+                  effectMode === "manual" ? "bg-purple-600 text-white" : "bg-gray-800 text-gray-500 hover:text-gray-300"
+                }`}>
+                개별 선택
+              </button>
+              <span className="text-[10px] text-gray-600 ml-1">
+                {effectMode === "auto" ? "업종에 맞는 효과가 자동 적용됩니다" : "각 씬별로 효과를 직접 선택합니다"}
+              </span>
+            </div>
+
             {/* 씬 카드들 */}
             <div className="space-y-3 mb-5">
               {scenes.map((scene, i) => (
@@ -1058,7 +1083,7 @@ export default function Home() {
                   <div className="flex items-start gap-3 mt-2 pt-2 border-t border-gray-700/40">
                     <div>
                       <span className="text-xs text-gray-400 font-medium block mb-1.5">텍스트 위치</span>
-                      <PositionGrid value={scene.text_position} onChange={(v) => updateScene(i, "text_position", v)} />
+                      <PositionSelector value={scene.text_position} onChange={(v) => updateScene(i, "text_position", v)} />
                     </div>
                     <div className="flex-1 space-y-1.5">
                       <div className="flex items-center gap-2">
@@ -1104,41 +1129,45 @@ export default function Home() {
                           </select>
                         </div>
 
-                        {/* 사진 배치 */}
-                        <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
-                          <select value={scene.photo_mode} onChange={(e) => updateScene(i, "photo_mode", e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
-                            <option value="">자동</option>
-                            {photoModeOptions.map(o => (
-                              <option key={o.id} value={o.id}>{o.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {effectMode === "manual" && (
+                          <>
+                            {/* 사진 배치 */}
+                            <div>
+                              <span className="text-[10px] text-gray-600 block mb-0.5">사진 배치</span>
+                              <select value={scene.photo_mode} onChange={(e) => updateScene(i, "photo_mode", e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                                <option value="">자동</option>
+                                {photoModeOptions.map(o => (
+                                  <option key={o.id} value={o.id}>{o.label}</option>
+                                ))}
+                              </select>
+                            </div>
 
-                        {/* 오버레이 */}
-                        <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
-                          <select value={scene.photo_overlay} onChange={(e) => updateScene(i, "photo_overlay", e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
-                            <option value="">자동</option>
-                            {overlayOptions.map(o => (
-                              <option key={o.id} value={o.id}>{o.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                            {/* 오버레이 */}
+                            <div>
+                              <span className="text-[10px] text-gray-600 block mb-0.5">오버레이</span>
+                              <select value={scene.photo_overlay} onChange={(e) => updateScene(i, "photo_overlay", e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                                <option value="">자동</option>
+                                {overlayOptions.map(o => (
+                                  <option key={o.id} value={o.id}>{o.label}</option>
+                                ))}
+                              </select>
+                            </div>
 
-                        {/* 텍스트 효과 */}
-                        <div>
-                          <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
-                          <select value={scene.text_effect} onChange={(e) => updateScene(i, "text_effect", e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
-                            <option value="">자동</option>
-                            {effectOptions.map(o => (
-                              <option key={o.id} value={o.id}>{o.label}</option>
-                            ))}
-                          </select>
-                        </div>
+                            {/* 텍스트 효과 */}
+                            <div>
+                              <span className="text-[10px] text-gray-600 block mb-0.5">텍스트 효과</span>
+                              <select value={scene.text_effect} onChange={(e) => updateScene(i, "text_effect", e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-xs text-gray-300 focus:border-blue-500 focus:outline-none">
+                                <option value="">자동</option>
+                                {effectOptions.map(o => (
+                                  <option key={o.id} value={o.id}>{o.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
+                        )}
 
                         {/* 폰트 선택 */}
                         <div>
@@ -1318,6 +1347,19 @@ export default function Home() {
               </div>
             </div>
 
+            {/* 현재 영상 미리보기 */}
+            {resultFile && (
+              <div className="mb-4">
+                <video
+                  key={resultFile}
+                  src={`${API}/api/download/${resultFile}`}
+                  controls
+                  className="w-full rounded-xl border border-gray-700"
+                />
+                <p className="text-xs text-gray-600 mt-1 text-center">현재 생성된 영상</p>
+              </div>
+            )}
+
             {/* 프리뷰 그리드 */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               {scenes.map((scene, i) => (
@@ -1388,7 +1430,7 @@ export default function Home() {
                 <div className="flex items-start gap-4">
                   <div>
                     <span className="text-xs text-gray-500 block mb-1">텍스트 위치</span>
-                    <PositionGrid value={scenes[editingScene].text_position}
+                    <PositionSelector value={scenes[editingScene].text_position}
                       onChange={(v) => updateScene(editingScene, "text_position", v)} />
                   </div>
                   <div className="space-y-2">

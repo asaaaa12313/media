@@ -90,6 +90,11 @@ def process_focus_media(job_id: str, update_fn, options: dict) -> dict:
             bgm_info = auto_select_bgm(business.category,
                                         bgm_dir=options.get("bgm_dir", ""))
 
+        bgm_path = bgm_info.get("path", "")
+        if not bgm_path:
+            logger.warning("[BGM] BGM 파일을 찾을 수 없습니다. 무음 영상으로 생성합니다. "
+                           f"BGM 디렉토리를 확인하세요: bgm_genre={bgm_genre}, category={business.category}")
+
         # 7. 최종 합성 (BGM 추가)
         update_fn("composing", 85)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

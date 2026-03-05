@@ -1,9 +1,12 @@
 """BGM 자동 선택: 자막 내용 + 파일명 키워드 기반"""
+import logging
 import os
 import random
 import glob
 from pathlib import Path
 from app.core.config import BGM_DIR
+
+logger = logging.getLogger(__name__)
 
 GENRE_KEYWORDS = {
     "신남": ["에너지", "챌린지", "운동", "댄스", "신나", "빠른", "파이팅", "화이팅", "고고", "레츠고"],
@@ -30,7 +33,8 @@ def select_bgm(srt_content: str = "", filenames: list[str] = None,
     bgm_base = Path(bgm_dir) if bgm_dir else BGM_DIR
 
     if not bgm_base.exists():
-        return {"genre": genre or DEFAULT_GENRE, "path": "", "filename": ""}
+        logger.warning(f"[BGM] BGM 디렉토리를 찾을 수 없습니다: {bgm_base}")
+        return {"genre": genre or DEFAULT_GENRE, "path": "", "filename": "", "available": False}
 
     if genre:
         selected_genre = genre
@@ -54,7 +58,8 @@ def select_bgm(srt_content: str = "", filenames: list[str] = None,
         bgm_files.extend(glob.glob(str(genre_dir / ext)))
 
     if not bgm_files:
-        return {"genre": selected_genre, "path": "", "filename": ""}
+        logger.warning(f"[BGM] '{selected_genre}' 장르에 BGM 파일이 없습니다: {genre_dir}")
+        return {"genre": selected_genre, "path": "", "filename": "", "available": False}
 
     chosen = random.choice(bgm_files)
     return {

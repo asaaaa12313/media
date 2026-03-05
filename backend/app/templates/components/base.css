@@ -106,3 +106,38 @@ body {
     font-weight: 700;
     color: #fff;
 }
+
+/* ─── 디자인 유틸리티 ─── */
+
+/* 글래스 카드 */
+.glass-card {
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+}
+
+/* 텍스트 그로우 */
+.text-glow {
+    text-shadow: 0 0 40px rgba(255,255,255,0.15), 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* 딥 셰도우 */
+.text-deep {
+    text-shadow: 0 4px 16px rgba(0,0,0,0.6), 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* 악센트 라인 */
+.accent-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--accent, #FF3B30);
+    border-radius: 2px;
+}
+
+/* 도트 패턴 */
+.dot-pattern {
+    background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+}

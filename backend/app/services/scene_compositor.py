@@ -88,13 +88,26 @@ def _try_fullscreen_html_render(
 
         tmpl = _get_jinja_env().get_template(tmpl_path)
 
-        # 사진을 base64로 변환
-        photo_b64 = ""
-        if photo:
-            photo_b64 = _img_to_base64(photo, "JPEG")
+        # 사진은 디자인 배경으로 대체되어 더 이상 base64로 전달하지 않음
 
         # 서비스 목록 (info_grid용)
         services = business.services[:6] if business.services else []
+
+        # CTA 텍스트 결정 + 중복 방지
+        if scene_type == "cta":
+            _cta = scene.headline if scene.headline else "지금 바로 방문하세요"
+            # 업체명과 동일하면 기본 CTA로 대체
+            if _cta.strip() == business.name.strip():
+                _cta = "지금 바로 방문하세요"
+        else:
+            _cta = ""
+
+        # sub_copy 중복 방지
+        _sub = scene.subtext or business.tagline or ""
+        if _sub.strip() == business.name.strip():
+            _sub = ""
+        if scene_type == "cta" and _sub.strip() == _cta.strip():
+            _sub = ""
 
         html = tmpl.render(
             width=width, height=height,
@@ -102,9 +115,9 @@ def _try_fullscreen_html_render(
             tagline=business.tagline,
             tagline_sub=business.tagline or "",
             headline=scene.headline or business.name,
-            sub_copy=scene.subtext or business.tagline or "",
+            sub_copy=_sub,
             highlight=scene.subtext if scene_type in ("highlight", "review") else "",
-            photo_base64=photo_b64,
+            photo_base64="",
             logo_base64=_img_to_base64(logo),
             qr_base64=_img_to_base64(qr),
             phone=business.phone,
@@ -114,8 +127,7 @@ def _try_fullscreen_html_render(
             # promo 전용
             discount="",
             discount_label="",
-            cta_text=(scene.headline if scene_type == "cta" and scene.headline else
-                     "지금 바로 방문하세요" if scene_type == "cta" else ""),
+            cta_text=_cta,
             naver_search=f"네이버에서 '{business.name}' 검색" if scene_type == "promotion" else "",
             # ending 전용
             hours=_parse_hours(getattr(business, 'operating_hours', '')),

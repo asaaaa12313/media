@@ -13,7 +13,7 @@ body {
 
 /* CTA 메인 영역 (상단) */
 .cta-hero {
-    padding: 48px 50px 24px;
+    padding: 44px 50px 20px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -91,6 +91,49 @@ body {
     white-space: nowrap;
 }
 
+/* 네이버 검색바 UI */
+.naver-search-bar {
+    margin: 0 50px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 12px;
+    padding: 4px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.naver-search-bar .n-logo {
+    width: 44px;
+    height: 44px;
+    background: #03C75A;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Gmarket';
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+.naver-search-bar .search-text {
+    flex: 1;
+    padding: 0 16px;
+    font-size: 17px;
+    color: #333;
+    font-weight: 500;
+}
+.naver-search-bar .search-btn {
+    padding: 10px 22px;
+    background: #03C75A;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
 /* 운영시간 */
 .hours-strip {
     padding: 0 50px;
@@ -122,15 +165,15 @@ body {
 .contact-bar {
     background: var(--primary, #222);
     border-radius: 24px 24px 0 0;
-    padding: 28px 50px;
+    padding: 24px 50px;
     display: flex;
     align-items: center;
     gap: 20px;
     flex-shrink: 0;
 }
 .contact-bar .qr-box {
-    width: 88px;
-    height: 88px;
+    width: 80px;
+    height: 80px;
     border-radius: 14px;
     overflow: hidden;
     background: #fff;
@@ -146,13 +189,13 @@ body {
 .contact-bar .contact-label {
     font-size: 11px;
     color: rgba(255,255,255,0.4);
-    margin-top: 8px;
+    margin-top: 6px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 .contact-bar .contact-phone {
     font-family: 'Gmarket';
-    font-size: 32px;
+    font-size: 30px;
     color: #fff;
     letter-spacing: -1px;
     margin-top: 2px;
@@ -162,10 +205,10 @@ body {
 <body>
     <!-- CTA 메인: scene headline (업체명과 다른 문구) -->
     <div class="cta-hero">
-        {% if cta_text %}
+        {% if cta_text and cta_text != business_name %}
         <div class="cta-headline">{{ cta_text }}</div>
         {% endif %}
-        {% if sub_copy %}
+        {% if sub_copy and sub_copy != cta_text and sub_copy != business_name %}
         <div class="cta-sub">{{ sub_copy }}</div>
         {% endif %}
         <div class="cta-accent-bar"></div>
@@ -179,7 +222,7 @@ body {
             {% endif %}
             <div class="brand-text">
                 <div class="biz-name">{{ business_name }}</div>
-                {% if tagline %}<div class="biz-tagline">{{ tagline }}</div>{% endif %}
+                {% if tagline and tagline != cta_text and tagline != business_name %}<div class="biz-tagline">{{ tagline }}</div>{% endif %}
             </div>
         </div>
 
@@ -192,9 +235,16 @@ body {
         {% endif %}
     </div>
 
+    <!-- 네이버 검색바 (업체명 검색 유도) -->
+    <div class="naver-search-bar">
+        <div class="n-logo">N</div>
+        <div class="search-text">{{ business_name }}</div>
+        <div class="search-btn">검색</div>
+    </div>
+
     <!-- 운영시간 (있을 때만) -->
     {% if hours %}
-    <div class="hours-strip">
+    <div class="hours-strip" style="margin-top: 12px;">
         <div class="hours-label">영업시간</div>
         <div class="hours-inline">
             {% for item in hours %}
@@ -205,7 +255,7 @@ body {
     {% endif %}
 
     <!-- 연락처 -->
-    <div class="contact-bar">
+    <div class="contact-bar" style="margin-top: 12px;">
         {% if qr_base64 %}
         <div class="qr-box"><img src="data:image/png;base64,{{ qr_base64 }}"></div>
         {% endif %}

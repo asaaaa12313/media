@@ -12,6 +12,7 @@ _google_drive_bgm = Path(os.path.expanduser(
 ))
 _local_bgm = BASE_DIR / "bgm"
 BGM_DIR = _google_drive_bgm if _google_drive_bgm.exists() else _local_bgm
+_local_bgm.mkdir(exist_ok=True)
 
 TEMP_DIR.mkdir(exist_ok=True)
 

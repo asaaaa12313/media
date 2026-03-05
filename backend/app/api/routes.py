@@ -203,6 +203,31 @@ async def get_place_info(url: str = Form(...)):
         return {"error": f"정보 추출 실패: {str(e)}"}
 
 
+@router.post("/api/extract-colors")
+async def api_extract_colors(
+    upload_dir: str = Form(""),
+    category: str = Form("기타"),
+):
+    """업로드된 사진에서 브랜드 컬러 추출"""
+    from app.services.color_extractor import extract_dominant_colors, extract_colors_from_category
+
+    colors = []
+    if upload_dir:
+        photo_dir = Path(upload_dir)
+        if photo_dir.exists():
+            photo_paths = []
+            for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp"):
+                photo_paths.extend(sorted(photo_dir.glob(ext))[:5])
+            if photo_paths:
+                colors = extract_dominant_colors([str(p) for p in photo_paths])
+
+    # 사진에서 추출 실패 시 업종 기본 팔레트
+    if not colors:
+        colors = extract_colors_from_category(category)
+
+    return {"colors": colors}
+
+
 @router.post("/api/place-photos")
 async def get_place_photos(url: str = Form(...), job_id: str = Form("")):
     """네이버 플레이스 사진 다운로드"""

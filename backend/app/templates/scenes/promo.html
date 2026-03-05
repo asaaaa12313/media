@@ -10,107 +10,139 @@ body {
     background: #0C0C0C;
 }
 
-.photo-area {
+/* 프로모션 메인 영역 */
+.promo-area {
     flex: 1;
     position: relative;
     overflow: hidden;
-}
-.photo-area img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.photo-area .gradient {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 40%, rgba(0,0,0,0.85) 100%);
-}
-
-/* 프로모션 오버레이 */
-.promo-overlay {
-    position: absolute;
-    left: 40px;
-    right: 40px;
-    bottom: 40px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    justify-content: center;
+    padding: 40px 44px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 15%, #0C0C0C) 0%, #0C0C0C 40%, color-mix(in srgb, var(--primary) 20%, #111) 100%);
+}
+
+/* 배경 장식 */
+.promo-area::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    right: -20%;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 60%);
+}
+.promo-area::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 22px 22px;
+}
+
+.promo-inner {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 /* 서비스 태그 */
 .service-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
 }
 .service-tags .tag {
     display: inline-flex;
     padding: 8px 18px;
     border-radius: 24px;
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(4px);
-    font-size: 17px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: rgba(255,255,255,0.7);
 }
 
 /* 할인 배지 */
-.discount-badge {
+.discount-card {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 28px;
-    border-radius: 16px;
+    gap: 16px;
+    padding: 20px 32px;
+    border-radius: 20px;
     background: var(--accent, #FF3B30);
     align-self: flex-start;
+    box-shadow: 0 8px 32px color-mix(in srgb, var(--accent) 30%, transparent);
 }
-.discount-badge .percent {
+.discount-card .percent {
     font-family: 'Gmarket';
-    font-size: 52px;
+    font-size: 56px;
     font-weight: 700;
     color: #fff;
     letter-spacing: -2px;
 }
-.discount-badge .label {
+.discount-card .label {
     font-size: 20px;
     color: rgba(255,255,255,0.9);
     line-height: 1.3;
+    font-weight: 600;
 }
 
 /* 프로모션 텍스트 */
 .promo-headline {
     font-family: 'Gmarket';
-    font-size: 48px;
+    font-size: 54px;
     font-weight: 700;
     color: #fff;
-    letter-spacing: -1px;
+    letter-spacing: -1.5px;
     line-height: 1.15;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 .promo-sub {
     font-size: 20px;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255,255,255,0.5);
+    line-height: 1.5;
 }
 
 /* CTA 버튼 */
 .cta-button {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 16px 32px;
-    border-radius: 12px;
+    gap: 10px;
+    padding: 18px 36px;
+    border-radius: 16px;
     background: var(--primary, #222);
     font-size: 20px;
     font-weight: 700;
     color: var(--text-on-primary, #fff);
     align-self: flex-start;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.cta-button .arrow {
+    font-size: 18px;
+    opacity: 0.6;
 }
 
-/* 네이버 영역 */
+/* 네이버 검색 */
 .naver-area {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-top: 4px;
+}
+.naver-area span {
+    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+}
+
+/* 구분선 */
+.promo-divider {
+    height: 1px;
+    background: linear-gradient(to right, rgba(255,255,255,0.08), transparent);
 }
 </style>
 </head>
@@ -125,13 +157,8 @@ body {
         </div>
     </div>
 
-    <div class="photo-area">
-        {% if photo_base64 %}
-        <img src="data:image/jpeg;base64,{{ photo_base64 }}">
-        {% endif %}
-        <div class="gradient"></div>
-
-        <div class="promo-overlay">
+    <div class="promo-area">
+        <div class="promo-inner">
             {% if services %}
             <div class="service-tags">
                 {% for svc in services %}
@@ -141,7 +168,7 @@ body {
             {% endif %}
 
             {% if discount %}
-            <div class="discount-badge">
+            <div class="discount-card">
                 <div class="percent">{{ discount }}</div>
                 <div class="label">{{ discount_label|default('할인 이벤트') }}</div>
             </div>
@@ -150,14 +177,16 @@ body {
             <div class="promo-headline">{{ headline }}</div>
             {% if sub_copy %}<div class="promo-sub">{{ sub_copy }}</div>{% endif %}
 
+            <div class="promo-divider"></div>
+
             {% if cta_text %}
-            <div class="cta-button">{{ cta_text }}</div>
+            <div class="cta-button">{{ cta_text }} <span class="arrow">→</span></div>
             {% endif %}
 
             {% if naver_search %}
             <div class="naver-area">
                 <div class="naver-badge">N</div>
-                <span style="color:rgba(255,255,255,0.8); font-size:18px;">{{ naver_search }}</span>
+                <span>{{ naver_search }}</span>
             </div>
             {% endif %}
         </div>
